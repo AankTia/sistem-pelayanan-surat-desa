@@ -1,6 +1,6 @@
 import { defineConfig } from 'vite';
 import laravel from 'laravel-vite-plugin';
-import react from '@vitejs/plugin-react';
+import react from '@vitejs/plugin-react-swc';
 import tailwindcss from '@tailwindcss/vite';
 
 export default defineConfig({
@@ -15,8 +15,12 @@ export default defineConfig({
             refresh: true,
         }),
         react({
-            fastRefresh: false,
+            devTarget: 'esnext',
         }),
         tailwindcss(),
     ],
+    esbuild: {
+        loader: 'jsx',
+        include: /resources\/js\/.*\.jsx?$/,
+    },
 });

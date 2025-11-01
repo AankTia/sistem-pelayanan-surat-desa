@@ -1,10 +1,73 @@
-import React, { useState } from 'react';
+import React, { useState, createContext, useContext } from 'react';
 import { createRoot } from 'react-dom/client';
 import { BrowserRouter, Routes, Route, Navigate, Link, useNavigate, useLocation } from 'react-router-dom';
 import { BarChart, Bar, LineChart, Line, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import axios from 'axios';
+
+// ==================== API SETUP ====================
+// Create axios instance with default config
+const api = axios.create({
+    baseURL: '/api/v1',
+    headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+    },
+});
+
+// Add token to requests if it exists
+api.interceptors.request.use(
+    (config) => {
+        const token = localStorage.getItem('auth_token');
+        if (token) {
+            config.headers.Authorization = `Bearer ${token}`;
+        }
+        return config;
+    },
+    (error) => {
+        return Promise.reject(error);
+    }
+);
+
+// Handle responses and errors
+api.interceptors.response.use(
+    (response) => {
+        return response;
+    },
+    (error) => {
+        // If unauthorized, clear token and redirect to login
+        if (error.response && error.response.status === 401) {
+            localStorage.removeItem('auth_token');
+            localStorage.removeItem('admin_user');
+
+            // Only redirect if not already on login page
+            if (!window.location.pathname.includes('/admin/login')) {
+                window.location.href = '/admin/login';
+            }
+        }
+        return Promise.reject(error);
+    }
+);
+
+// API endpoints
+const authAPI = {
+    login: async (email, password) => {
+        const response = await api.post('/login', { email, password });
+        return response.data;
+    },
+
+    logout: async () => {
+        const response = await api.post('/logout');
+        return response.data;
+    },
+
+    me: async () => {
+        const response = await api.get('/me');
+        return response.data;
+    },
+};
 
 // ==================== AUTH CONTEXT ====================
-const AuthContext = React.createContext();
+const AuthContext = createContext();
 
 function AuthProvider({ children }) {
     const [user, setUser] = useState(() => {
@@ -12,14 +75,40 @@ function AuthProvider({ children }) {
         return savedUser ? JSON.parse(savedUser) : null;
     });
 
-    const login = (userData) => {
-        setUser(userData);
-        localStorage.setItem('admin_user', JSON.stringify(userData));
+    const login = async (email, password) => {
+        try {
+            const response = await authAPI.login(email, password);
+
+            if (response.success) {
+                const userData = response.data.user;
+                const token = response.data.token;
+
+                // Store user and token
+                setUser(userData);
+                localStorage.setItem('admin_user', JSON.stringify(userData));
+                localStorage.setItem('auth_token', token);
+
+                return { success: true };
+            } else {
+                return { success: false, message: response.message };
+            }
+        } catch (error) {
+            const message = error.response?.data?.message || 'Login failed. Please try again.';
+            return { success: false, message };
+        }
     };
 
-    const logout = () => {
-        setUser(null);
-        localStorage.removeItem('admin_user');
+    const logout = async () => {
+        try {
+            await authAPI.logout();
+        } catch (error) {
+            // Continue with local logout even if API call fails
+            console.error('Logout API error:', error);
+        } finally {
+            setUser(null);
+            localStorage.removeItem('admin_user');
+            localStorage.removeItem('auth_token');
+        }
     };
 
     return (
@@ -30,7 +119,7 @@ function AuthProvider({ children }) {
 }
 
 function useAuth() {
-    return React.useContext(AuthContext);
+    return useContext(AuthContext);
 }
 
 // ==================== DUMMY DATA ====================
@@ -188,7 +277,7 @@ function Sidebar({ isOpen, toggleSidebar }) {
                                         <span className="text-blue-800 font-bold text-lg">{user?.name?.[0] || 'A'}</span>
                                     </div>
                                     <div className="flex-1 min-w-0">
-                                        <p className="text-sm font-semibold truncate">Super Admin</p>
+                                        <p className="text-sm font-semibold truncate">{user?.roles?.[0] || 'User'}</p>
                                         <p className="text-xs text-blue-200 truncate">{user?.email || 'admin@example.com'}</p>
                                     </div>
                                 </div>
@@ -326,22 +415,28 @@ function LoginPage() {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [loading, setLoading] = useState(false);
+    const [error, setError] = useState('');
     const { login } = useAuth();
     const navigate = useNavigate();
 
-    const handleSubmit = (e) => {
+    const handleSubmit = async (e) => {
         e.preventDefault();
         setLoading(true);
+        setError('');
 
-        setTimeout(() => {
-            if (email === 'admin@example.com' && password === 'password') {
-                login({ name: 'Admin User', email: email, role: 'Administrator' });
+        try {
+            const result = await login(email, password);
+
+            if (result.success) {
                 navigate('/admin/dashboard');
             } else {
-                alert('Email atau password salah!');
+                setError(result.message || 'Login failed. Please try again.');
             }
+        } catch (err) {
+            setError('An unexpected error occurred. Please try again.');
+        } finally {
             setLoading(false);
-        }, 1000);
+        }
     };
 
     return (
@@ -355,6 +450,12 @@ function LoginPage() {
                     <p className="text-gray-600 mt-2">Sistem Surat Desa</p>
                 </div>
 
+                {error && (
+                    <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg">
+                        <p className="text-sm text-red-800">{error}</p>
+                    </div>
+                )}
+
                 <form onSubmit={handleSubmit} className="space-y-6">
                     <div>
                         <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -365,8 +466,9 @@ function LoginPage() {
                             value={email}
                             onChange={(e) => setEmail(e.target.value)}
                             placeholder="admin@example.com"
-                            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"
                             required
+                            disabled={loading}
                         />
                     </div>
 
@@ -379,15 +481,16 @@ function LoginPage() {
                             value={password}
                             onChange={(e) => setPassword(e.target.value)}
                             placeholder="••••••••"
-                            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"
                             required
+                            disabled={loading}
                         />
                     </div>
 
                     <button
                         type="submit"
                         disabled={loading}
-                        className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 rounded-lg transition disabled:bg-gray-300"
+                        className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 rounded-lg transition disabled:bg-gray-400 disabled:cursor-not-allowed"
                     >
                         {loading ? 'Loading...' : 'Login'}
                     </button>
@@ -396,7 +499,7 @@ function LoginPage() {
                 <div className="mt-6 p-4 bg-blue-50 rounded-lg">
                     <p className="text-sm text-blue-800">
                         <strong>Demo credentials:</strong><br />
-                        Email: admin@example.com<br />
+                        Email: superadmin@example.com<br />
                         Password: password
                     </p>
                 </div>
