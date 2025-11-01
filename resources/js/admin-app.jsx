@@ -184,6 +184,79 @@ const letterCategoryAPI = {
     },
 };
 
+// ==================== TOAST NOTIFICATION SYSTEM ====================
+const ToastContext = createContext();
+
+function ToastProvider({ children }) {
+    const [toasts, setToasts] = useState([]);
+
+    const showToast = (message, type = 'success') => {
+        const id = Date.now();
+        setToasts(prev => [...prev, { id, message, type }]);
+
+        // Auto remove after 3 seconds
+        setTimeout(() => {
+            setToasts(prev => prev.filter(toast => toast.id !== id));
+        }, 3000);
+    };
+
+    const removeToast = (id) => {
+        setToasts(prev => prev.filter(toast => toast.id !== id));
+    };
+
+    return (
+        <ToastContext.Provider value={{ showToast }}>
+            {children}
+            <div className="fixed top-4 right-4 z-50 space-y-2">
+                {toasts.map(toast => (
+                    <div
+                        key={toast.id}
+                        className={`flex items-center p-4 rounded-lg shadow-lg min-w-[300px] max-w-md animate-slide-in ${
+                            toast.type === 'success'
+                                ? 'bg-green-500 text-white'
+                                : toast.type === 'error'
+                                ? 'bg-red-500 text-white'
+                                : 'bg-blue-500 text-white'
+                        }`}
+                    >
+                        <i className={`fas ${
+                            toast.type === 'success' ? 'fa-check-circle' :
+                            toast.type === 'error' ? 'fa-exclamation-circle' :
+                            'fa-info-circle'
+                        } mr-3 text-xl`}></i>
+                        <span className="flex-1">{toast.message}</span>
+                        <button
+                            onClick={() => removeToast(toast.id)}
+                            className="ml-4 text-white hover:text-gray-200"
+                        >
+                            <i className="fas fa-times"></i>
+                        </button>
+                    </div>
+                ))}
+            </div>
+            <style>{`
+                @keyframes slide-in {
+                    from {
+                        transform: translateX(100%);
+                        opacity: 0;
+                    }
+                    to {
+                        transform: translateX(0);
+                        opacity: 1;
+                    }
+                }
+                .animate-slide-in {
+                    animation: slide-in 0.3s ease-out;
+                }
+            `}</style>
+        </ToastContext.Provider>
+    );
+}
+
+function useToast() {
+    return useContext(ToastContext);
+}
+
 // ==================== AUTH CONTEXT ====================
 const AuthContext = createContext();
 
@@ -345,16 +418,34 @@ function Sidebar({ isOpen, toggleSidebar }) {
     const location = useLocation();
     const { user, logout } = useAuth();
     const navigate = useNavigate();
+    const [expandedMenus, setExpandedMenus] = useState(['letter-management']);
 
     const handleLogout = () => {
         logout();
         navigate('/admin/login');
     };
 
+    const toggleMenu = (menuKey) => {
+        setExpandedMenus(prev =>
+            prev.includes(menuKey)
+                ? prev.filter(k => k !== menuKey)
+                : [...prev, menuKey]
+        );
+    };
+
     const menuItems = [
         { path: '/admin/dashboard', icon: 'fa-home', label: 'Dashboard' },
         // { path: '/admin/charts', icon: 'fa-chart-line', label: 'Grafik Aktivitas' },
         // { path: '/admin/requests', icon: 'fa-file-alt', label: 'Permohonan Surat', badge: 5 },
+        {
+            key: 'letter-management',
+            icon: 'fa-file-alt',
+            label: 'Letter Management',
+            children: [
+                { path: '/admin/letter-categories', icon: 'fa-folder', label: 'Categories' },
+                // { path: '/admin/letter-templates', icon: 'fa-file-text', label: 'Templates' },
+            ]
+        },
         { path: '/admin/users', icon: 'fa-users-cog', label: 'User Management' },
         // { path: '/admin/residents', icon: 'fa-users', label: 'Penduduk' },
         // { path: '/admin/reports', icon: 'fa-chart-bar', label: 'Reports' },
@@ -362,6 +453,78 @@ function Sidebar({ isOpen, toggleSidebar }) {
         // { path: '/admin/settings', icon: 'fa-cog', label: 'Settings' },
         // { path: '/admin/logs', icon: 'fa-history', label: 'Log Activity' }
     ];
+
+    const renderMenuItem = (item) => {
+        // Collapsable menu item
+        if (item.children) {
+            const isExpanded = expandedMenus.includes(item.key);
+            const hasActiveChild = item.children.some(child => location.pathname === child.path);
+
+            return (
+                <div key={item.key}>
+                    <button
+                        onClick={() => isOpen && toggleMenu(item.key)}
+                        className={`w-full flex items-center px-4 py-3 transition-colors ${
+                            hasActiveChild
+                                ? 'bg-blue-700 text-white'
+                                : 'text-blue-100 hover:bg-blue-700'
+                        }`}
+                    >
+                        <i className={`fas ${item.icon} ${isOpen ? 'mr-3' : 'mx-auto'} text-lg`}></i>
+                        {isOpen && (
+                            <>
+                                <span className="flex-1 text-left">{item.label}</span>
+                                <i className={`fas fa-chevron-${isExpanded ? 'down' : 'right'} text-sm`}></i>
+                            </>
+                        )}
+                    </button>
+                    {isOpen && isExpanded && (
+                        <div className="bg-blue-900 bg-opacity-50">
+                            {item.children.map(child => (
+                                <Link
+                                    key={child.path}
+                                    to={child.path}
+                                    className={`flex items-center px-4 py-2 pl-12 transition-colors ${
+                                        location.pathname === child.path
+                                            ? 'bg-blue-600 text-white'
+                                            : 'text-blue-100 hover:bg-blue-700'
+                                    }`}
+                                >
+                                    <i className={`fas ${child.icon} mr-3 text-sm`}></i>
+                                    <span className="text-sm">{child.label}</span>
+                                </Link>
+                            ))}
+                        </div>
+                    )}
+                </div>
+            );
+        }
+
+        // Regular menu item
+        return (
+            <Link
+                key={item.path}
+                to={item.path}
+                className={`flex items-center px-4 py-3 transition-colors ${
+                    location.pathname === item.path
+                        ? 'bg-blue-700 text-white'
+                        : 'text-blue-100 hover:bg-blue-700'
+                }`}
+            >
+                <i className={`fas ${item.icon} ${isOpen ? 'mr-3' : 'mx-auto'} text-lg`}></i>
+                {isOpen && (
+                    <div className="flex items-center justify-between flex-1">
+                        <span>{item.label}</span>
+                        {item.badge && (
+                            <span className="bg-red-500 text-white text-xs px-2 py-1 rounded-full">
+                                {item.badge}
+                            </span>
+                        )}
+                    </div>
+                )}
+            </Link>
+        );
+    };
 
     return (
         <>
@@ -409,29 +572,7 @@ function Sidebar({ isOpen, toggleSidebar }) {
 
                     {/* Menu Items */}
                     <nav className="flex-1 overflow-y-auto py-4">
-                        {menuItems.map((item) => (
-                            <Link
-                                key={item.path}
-                                to={item.path}
-                                className={`flex items-center px-4 py-3 transition-colors ${
-                                    location.pathname === item.path
-                                        ? 'bg-blue-700 text-white'
-                                        : 'text-blue-100 hover:bg-blue-700'
-                                }`}
-                            >
-                                <i className={`fas ${item.icon} ${isOpen ? 'mr-3' : 'mx-auto'} text-lg`}></i>
-                                {isOpen && (
-                                    <div className="flex items-center justify-between flex-1">
-                                        <span>{item.label}</span>
-                                        {item.badge && (
-                                            <span className="bg-red-500 text-white text-xs px-2 py-1 rounded-full">
-                                                {item.badge}
-                                            </span>
-                                        )}
-                                    </div>
-                                )}
-                            </Link>
-                        ))}
+                        {menuItems.map(item => renderMenuItem(item))}
                     </nav>
 
                     {/* Logout Button */}
@@ -1535,6 +1676,535 @@ function ReportsPage() {
     );
 }
 
+function LetterCategoryPage() {
+    const { showToast } = useToast();
+    const [categories, setCategories] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
+    const [pagination, setPagination] = useState({
+        current_page: 1,
+        last_page: 1,
+        per_page: 10,
+        total: 0
+    });
+    const [search, setSearch] = useState('');
+    const [statusFilter, setStatusFilter] = useState('');
+    const [showModal, setShowModal] = useState(false);
+    const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+    const [selectedCategory, setSelectedCategory] = useState(null);
+    const [formData, setFormData] = useState({
+        name: '',
+        description: '',
+        icon: 'fa-solid fa-file',
+        order: '',
+        status: 'active'
+    });
+    const [formErrors, setFormErrors] = useState({});
+    const [submitting, setSubmitting] = useState(false);
+
+    const iconOptions = [
+        'fa-solid fa-file',
+        'fa-solid fa-id-card',
+        'fa-solid fa-ring',
+        'fa-solid fa-briefcase',
+        'fa-solid fa-landmark',
+        'fa-solid fa-scale-balanced',
+        'fa-solid fa-envelope-open-text',
+        'fa-solid fa-seedling',
+        'fa-solid fa-home',
+        'fa-solid fa-users',
+        'fa-solid fa-graduation-cap',
+        'fa-solid fa-hospital',
+        'fa-solid fa-building',
+        'fa-solid fa-car',
+        'fa-solid fa-heart',
+        'fa-solid fa-flag',
+    ];
+
+    const fetchCategories = async (page = 1, searchQuery = search, status = statusFilter) => {
+        try {
+            setLoading(true);
+            setError(null);
+            const params = {
+                per_page: pagination.per_page,
+                page: page,
+            };
+            if (searchQuery) params.search = searchQuery;
+            if (status) params.status = status;
+
+            const response = await letterCategoryAPI.getAll(params);
+
+            if (response.success) {
+                setCategories(response.data.categories);
+                setPagination(response.data.pagination);
+            }
+        } catch (err) {
+            const errorMessage = err.response?.data?.message || 'Failed to load categories';
+            setError(errorMessage);
+            showToast(errorMessage, 'error');
+            console.error('Error fetching categories:', err);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    React.useEffect(() => {
+        fetchCategories();
+    }, []);
+
+    const handleSearch = (e) => {
+        e.preventDefault();
+        fetchCategories(1, search, statusFilter);
+    };
+
+    const handleStatusFilter = (status) => {
+        setStatusFilter(status);
+        fetchCategories(1, search, status);
+    };
+
+    const handleCreateClick = () => {
+        setSelectedCategory(null);
+        setFormData({
+            name: '',
+            description: '',
+            icon: 'fa-solid fa-file',
+            order: '',
+            status: 'active'
+        });
+        setFormErrors({});
+        setShowModal(true);
+    };
+
+    const handleEditClick = (category) => {
+        setSelectedCategory(category);
+        setFormData({
+            name: category.name,
+            description: category.description || '',
+            icon: category.icon || 'fa-solid fa-file',
+            order: category.order || '',
+            status: category.status
+        });
+        setFormErrors({});
+        setShowModal(true);
+    };
+
+    const handleDeleteClick = (category) => {
+        setSelectedCategory(category);
+        setShowDeleteConfirm(true);
+    };
+
+    const handleFormChange = (e) => {
+        const { name, value } = e.target;
+        setFormData(prev => ({
+            ...prev,
+            [name]: value
+        }));
+        if (formErrors[name]) {
+            setFormErrors(prev => ({
+                ...prev,
+                [name]: null
+            }));
+        }
+    };
+
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+        setFormErrors({});
+        setSubmitting(true);
+
+        try {
+            const dataToSubmit = { ...formData };
+            if (dataToSubmit.order === '') {
+                delete dataToSubmit.order;
+            }
+
+            if (selectedCategory) {
+                const response = await letterCategoryAPI.update(selectedCategory.id, dataToSubmit);
+                if (response.success) {
+                    setShowModal(false);
+                    fetchCategories(pagination.current_page);
+                    showToast('Category updated successfully!', 'success');
+                }
+            } else {
+                const response = await letterCategoryAPI.create(dataToSubmit);
+                if (response.success) {
+                    setShowModal(false);
+                    fetchCategories(1);
+                    showToast('Category created successfully!', 'success');
+                }
+            }
+        } catch (err) {
+            if (err.response?.data?.errors) {
+                setFormErrors(err.response.data.errors);
+                showToast('Please fix the validation errors', 'error');
+            } else {
+                const errorMessage = err.response?.data?.message || 'Failed to save category';
+                setError(errorMessage);
+                showToast(errorMessage, 'error');
+            }
+        } finally {
+            setSubmitting(false);
+        }
+    };
+
+    const handleDelete = async () => {
+        setSubmitting(true);
+        try {
+            const response = await letterCategoryAPI.delete(selectedCategory.id);
+            if (response.success) {
+                setShowDeleteConfirm(false);
+                fetchCategories(pagination.current_page);
+                showToast('Category deleted successfully!', 'success');
+            }
+        } catch (err) {
+            const errorMessage = err.response?.data?.message || 'Failed to delete category';
+            setError(errorMessage);
+            showToast(errorMessage, 'error');
+            setShowDeleteConfirm(false);
+        } finally {
+            setSubmitting(false);
+        }
+    };
+
+    return (
+        <div className="space-y-6">
+            <div className="bg-white rounded-lg shadow-sm border border-gray-200">
+                <div className="p-6 border-b border-gray-200">
+                    <div className="flex items-center justify-between">
+                        <div>
+                            <h2 className="text-xl font-bold text-gray-800">Letter Categories</h2>
+                            <p className="text-sm text-gray-600 mt-1">Manage letter categories and their templates</p>
+                        </div>
+                        <button
+                            onClick={handleCreateClick}
+                            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center space-x-2"
+                        >
+                            <i className="fas fa-plus"></i>
+                            <span>Add Category</span>
+                        </button>
+                    </div>
+
+                    {error && (
+                        <div className="mt-4 p-4 bg-red-50 border border-red-200 text-red-700 rounded-lg">
+                            <i className="fas fa-exclamation-circle mr-2"></i>
+                            {error}
+                        </div>
+                    )}
+
+                    <div className="mt-6 flex flex-col md:flex-row md:items-center md:justify-between space-y-4 md:space-y-0 md:space-x-4">
+                        <form onSubmit={handleSearch} className="flex-1 flex space-x-2">
+                            <input
+                                type="text"
+                                value={search}
+                                onChange={(e) => setSearch(e.target.value)}
+                                placeholder="Search categories..."
+                                className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            />
+                            <button
+                                type="submit"
+                                className="px-6 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700"
+                            >
+                                <i className="fas fa-search"></i>
+                            </button>
+                        </form>
+
+                        <div className="flex space-x-2">
+                            <button
+                                onClick={() => handleStatusFilter('')}
+                                className={`px-4 py-2 rounded-lg ${statusFilter === '' ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-700'}`}
+                            >
+                                All
+                            </button>
+                            <button
+                                onClick={() => handleStatusFilter('active')}
+                                className={`px-4 py-2 rounded-lg ${statusFilter === 'active' ? 'bg-green-600 text-white' : 'bg-gray-200 text-gray-700'}`}
+                            >
+                                Active
+                            </button>
+                            <button
+                                onClick={() => handleStatusFilter('inactive')}
+                                className={`px-4 py-2 rounded-lg ${statusFilter === 'inactive' ? 'bg-gray-600 text-white' : 'bg-gray-200 text-gray-700'}`}
+                            >
+                                Inactive
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div className="overflow-x-auto">
+                    {loading ? (
+                        <div className="flex justify-center items-center py-12">
+                            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+                        </div>
+                    ) : categories.length === 0 ? (
+                        <div className="text-center py-12">
+                            <i className="fas fa-folder-open text-4xl text-gray-400 mb-4"></i>
+                            <p className="text-gray-500">No categories found</p>
+                        </div>
+                    ) : (
+                        <table className="min-w-full divide-y divide-gray-200">
+                            <thead className="bg-gray-50">
+                                <tr>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Order</th>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Category</th>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Description</th>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Templates</th>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody className="bg-white divide-y divide-gray-200">
+                                {categories.map((category) => (
+                                    <tr key={category.id} className="hover:bg-gray-50">
+                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                            #{category.order}
+                                        </td>
+                                        <td className="px-6 py-4 whitespace-nowrap">
+                                            <div className="flex items-center">
+                                                <i className={`${category.icon} text-blue-600 text-lg mr-3`}></i>
+                                                <div>
+                                                    <div className="text-sm font-medium text-gray-900">{category.name}</div>
+                                                    <div className="text-xs text-gray-500">{category.slug}</div>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td className="px-6 py-4 text-sm text-gray-600 max-w-md">
+                                            <p className="line-clamp-2">{category.description}</p>
+                                        </td>
+                                        <td className="px-6 py-4 whitespace-nowrap">
+                                            <span className="px-3 py-1 text-xs font-medium bg-blue-100 text-blue-800 rounded-full">
+                                                {category.templates_count} templates
+                                            </span>
+                                        </td>
+                                        <td className="px-6 py-4 whitespace-nowrap">
+                                            <span className={`px-3 py-1 text-xs font-medium rounded-full ${
+                                                category.status === 'active'
+                                                    ? 'bg-green-100 text-green-800'
+                                                    : 'bg-gray-100 text-gray-800'
+                                            }`}>
+                                                {category.status}
+                                            </span>
+                                        </td>
+                                        <td className="px-6 py-4 whitespace-nowrap text-sm">
+                                            <div className="flex items-center space-x-2">
+                                                <button
+                                                    onClick={() => handleEditClick(category)}
+                                                    className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg"
+                                                    title="Edit"
+                                                >
+                                                    <i className="fas fa-edit"></i>
+                                                </button>
+                                                <button
+                                                    onClick={() => handleDeleteClick(category)}
+                                                    className="p-2 text-red-600 hover:bg-red-50 rounded-lg"
+                                                    title="Delete"
+                                                >
+                                                    <i className="fas fa-trash"></i>
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    )}
+                </div>
+
+                {pagination.last_page > 1 && (
+                    <div className="px-6 py-4 border-t border-gray-200 flex items-center justify-between">
+                        <div className="text-sm text-gray-600">
+                            Showing {(pagination.current_page - 1) * pagination.per_page + 1} to{' '}
+                            {Math.min(pagination.current_page * pagination.per_page, pagination.total)} of{' '}
+                            {pagination.total} categories
+                        </div>
+                        <div className="flex space-x-2">
+                            <button
+                                onClick={() => fetchCategories(pagination.current_page - 1)}
+                                disabled={pagination.current_page === 1}
+                                className="px-4 py-2 border border-gray-300 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+                            >
+                                Previous
+                            </button>
+                            <button
+                                onClick={() => fetchCategories(pagination.current_page + 1)}
+                                disabled={pagination.current_page === pagination.last_page}
+                                className="px-4 py-2 border border-gray-300 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+                            >
+                                Next
+                            </button>
+                        </div>
+                    </div>
+                )}
+            </div>
+
+            {/* Create/Edit Modal */}
+            {showModal && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+                    <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+                        <div className="p-6 border-b border-gray-200">
+                            <h3 className="text-lg font-bold text-gray-800">
+                                {selectedCategory ? 'Edit Category' : 'Create New Category'}
+                            </h3>
+                        </div>
+
+                        <form onSubmit={handleSubmit} className="p-6 space-y-4">
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-2">
+                                    Name <span className="text-red-500">*</span>
+                                </label>
+                                <input
+                                    type="text"
+                                    name="name"
+                                    value={formData.name}
+                                    onChange={handleFormChange}
+                                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                    required
+                                />
+                                {formErrors.name && (
+                                    <p className="text-red-500 text-sm mt-1">{formErrors.name[0]}</p>
+                                )}
+                            </div>
+
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-2">
+                                    Description
+                                </label>
+                                <textarea
+                                    name="description"
+                                    value={formData.description}
+                                    onChange={handleFormChange}
+                                    rows="3"
+                                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                />
+                                {formErrors.description && (
+                                    <p className="text-red-500 text-sm mt-1">{formErrors.description[0]}</p>
+                                )}
+                            </div>
+
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-2">
+                                    Icon
+                                </label>
+                                <div className="grid grid-cols-8 gap-2">
+                                    {iconOptions.map(icon => (
+                                        <button
+                                            key={icon}
+                                            type="button"
+                                            onClick={() => setFormData(prev => ({ ...prev, icon }))}
+                                            className={`p-3 border rounded-lg hover:bg-gray-50 ${
+                                                formData.icon === icon
+                                                    ? 'border-blue-500 bg-blue-50'
+                                                    : 'border-gray-300'
+                                            }`}
+                                        >
+                                            <i className={`${icon} text-xl`}></i>
+                                        </button>
+                                    ))}
+                                </div>
+                                {formErrors.icon && (
+                                    <p className="text-red-500 text-sm mt-1">{formErrors.icon[0]}</p>
+                                )}
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                                        Order
+                                    </label>
+                                    <input
+                                        type="number"
+                                        name="order"
+                                        value={formData.order}
+                                        onChange={handleFormChange}
+                                        min="1"
+                                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                    />
+                                    {formErrors.order && (
+                                        <p className="text-red-500 text-sm mt-1">{formErrors.order[0]}</p>
+                                    )}
+                                </div>
+
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                                        Status <span className="text-red-500">*</span>
+                                    </label>
+                                    <select
+                                        name="status"
+                                        value={formData.status}
+                                        onChange={handleFormChange}
+                                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                        required
+                                    >
+                                        <option value="active">Active</option>
+                                        <option value="inactive">Inactive</option>
+                                    </select>
+                                    {formErrors.status && (
+                                        <p className="text-red-500 text-sm mt-1">{formErrors.status[0]}</p>
+                                    )}
+                                </div>
+                            </div>
+
+                            <div className="flex justify-end space-x-3 pt-4">
+                                <button
+                                    type="button"
+                                    onClick={() => setShowModal(false)}
+                                    className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    type="submit"
+                                    disabled={submitting}
+                                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
+                                >
+                                    {submitting ? 'Saving...' : selectedCategory ? 'Update' : 'Create'}
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
+
+            {/* Delete Confirmation Modal */}
+            {showDeleteConfirm && selectedCategory && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+                    <div className="bg-white rounded-lg shadow-xl max-w-md w-full">
+                        <div className="p-6">
+                            <div className="flex items-center justify-center w-12 h-12 mx-auto bg-red-100 rounded-full mb-4">
+                                <i className="fas fa-exclamation-triangle text-red-600 text-xl"></i>
+                            </div>
+                            <h3 className="text-lg font-bold text-gray-800 text-center mb-2">Delete Category</h3>
+                            <p className="text-gray-600 text-center mb-6">
+                                Are you sure you want to delete "{selectedCategory.name}"?
+                                {selectedCategory.templates_count > 0 && (
+                                    <span className="block mt-2 text-red-600 text-sm">
+                                        This category has {selectedCategory.templates_count} template(s) and cannot be deleted.
+                                    </span>
+                                )}
+                            </p>
+                            <div className="flex space-x-3">
+                                <button
+                                    onClick={() => setShowDeleteConfirm(false)}
+                                    className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    onClick={handleDelete}
+                                    disabled={submitting || selectedCategory.templates_count > 0}
+                                    className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                                >
+                                    {submitting ? 'Deleting...' : 'Delete'}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+        </div>
+    );
+}
+
 function AccessManagementPage() {
     const [roles, setRoles] = React.useState([]);
     const [groupedPermissions, setGroupedPermissions] = React.useState({});
@@ -2067,32 +2737,35 @@ function ProtectedRoute({ children }) {
 // ==================== MAIN APP ====================
 function AdminApp() {
     return (
-        <AuthProvider>
-            <BrowserRouter>
-                <Routes>
-                    <Route path="/admin/login" element={<LoginPage />} />
-                    <Route path="/admin/*" element={
-                        <ProtectedRoute>
-                            <AdminLayout>
-                                <Routes>
-                                    <Route path="dashboard" element={<DashboardPage />} />
-                                    <Route path="charts" element={<ChartsPage />} />
-                                    <Route path="requests" element={<RequestsPage />} />
-                                    <Route path="users" element={<UsersPage />} />
-                                    <Route path="residents" element={<ResidentsPage />} />
-                                    <Route path="reports" element={<ReportsPage />} />
-                                    <Route path="access" element={<AccessManagementPage />} />
-                                    <Route path="settings" element={<SettingsPage />} />
-                                    <Route path="logs" element={<LogsPage />} />
-                                    <Route path="*" element={<Navigate to="/admin/dashboard" replace />} />
-                                </Routes>
-                            </AdminLayout>
-                        </ProtectedRoute>
-                    } />
-                    <Route path="*" element={<Navigate to="/admin/login" replace />} />
-                </Routes>
-            </BrowserRouter>
-        </AuthProvider>
+        <ToastProvider>
+            <AuthProvider>
+                <BrowserRouter>
+                    <Routes>
+                        <Route path="/admin/login" element={<LoginPage />} />
+                        <Route path="/admin/*" element={
+                            <ProtectedRoute>
+                                <AdminLayout>
+                                    <Routes>
+                                        <Route path="dashboard" element={<DashboardPage />} />
+                                        <Route path="charts" element={<ChartsPage />} />
+                                        <Route path="requests" element={<RequestsPage />} />
+                                        <Route path="letter-categories" element={<LetterCategoryPage />} />
+                                        <Route path="users" element={<UsersPage />} />
+                                        <Route path="residents" element={<ResidentsPage />} />
+                                        <Route path="reports" element={<ReportsPage />} />
+                                        <Route path="access" element={<AccessManagementPage />} />
+                                        <Route path="settings" element={<SettingsPage />} />
+                                        <Route path="logs" element={<LogsPage />} />
+                                        <Route path="*" element={<Navigate to="/admin/dashboard" replace />} />
+                                    </Routes>
+                                </AdminLayout>
+                            </ProtectedRoute>
+                        } />
+                        <Route path="*" element={<Navigate to="/admin/login" replace />} />
+                    </Routes>
+                </BrowserRouter>
+            </AuthProvider>
+        </ToastProvider>
     );
 }
 
