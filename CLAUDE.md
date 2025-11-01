@@ -134,6 +134,41 @@ Templates use dynamic form fields stored as JSON in the database, allowing flexi
 
 Both React apps use **local component state** with React hooks (useState, useEffect). No global state management library is used. API calls are made directly from components using the axios instance from `resources/js/api.js`.
 
+### Toast Notification System
+
+A custom toast notification system is implemented using React Context:
+
+**Location**: `resources/js/admin-app.jsx` (lines ~187-258)
+
+**Usage**:
+```javascript
+// Import the hook in your component
+const { showToast } = useToast();
+
+// Show success message
+showToast('Operation completed successfully!', 'success');
+
+// Show error message
+showToast('Something went wrong', 'error');
+
+// Show info message
+showToast('Please note...', 'info');
+```
+
+**Features**:
+- Three types: `success` (green), `error` (red), `info` (blue)
+- Auto-dismissal after 3 seconds
+- Manual close button on each toast
+- Slide-in animation from top-right
+- Multiple toasts stack vertically
+- No external dependencies (custom implementation)
+
+**Implementation Notes**:
+- The `ToastProvider` wraps the entire app in `AdminApp` component
+- Use for user feedback on CRUD operations (create, update, delete)
+- Use for API error messages instead of inline error displays when appropriate
+- Toasts appear at fixed position: top-right corner (z-index: 50)
+
 ### Styling
 
 - **Tailwind CSS v4** with Vite plugin
@@ -181,6 +216,12 @@ Detailed API documentation is available in `API_DOCUMENTATION.md` with all endpo
    - Add component inline in the appropriate app file (`admin-app.jsx` or `public-wizard-app.jsx`)
    - Add route to the React Router configuration
    - For admin features, add to the sidebar navigation in `AdminLayout` component
+   - Import and use `useToast()` hook for user feedback on actions:
+     ```javascript
+     const { showToast } = useToast();
+     // On success: showToast('Success message', 'success');
+     // On error: showToast('Error message', 'error');
+     ```
 
 3. When modifying permissions:
    - Update `database/seeders/RolePermissionSeeder.php`
