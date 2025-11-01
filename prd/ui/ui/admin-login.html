@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login Admin - Sistem Surat Desa</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body class="bg-gradient-to-br from-blue-600 via-blue-700 to-indigo-800 min-h-screen flex items-center justify-center p-4">
+    <!-- Login Container -->
+    <div class="w-full max-w-md" x-data="loginForm()">
+        <!-- Logo and Title -->
+        <div class="text-center mb-8">
+            <div class="inline-block p-4 bg-white rounded-full mb-4 shadow-lg">
+                <i class="fas fa-landmark text-blue-600 text-5xl"></i>
+            </div>
+            <h1 class="text-3xl font-bold text-white mb-2">Sistem Surat Desa</h1>
+            <p class="text-blue-100">Portal Administrator</p>
+        </div>
+
+        <!-- Login Card -->
+        <div class="bg-white rounded-2xl shadow-2xl p-8">
+            <div class="mb-6">
+                <h2 class="text-2xl font-bold text-gray-800 mb-2">Selamat Datang</h2>
+                <p class="text-gray-600">Silakan login untuk melanjutkan</p>
+            </div>
+
+            <!-- Alert Message -->
+            <div x-show="error" class="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
+                <div class="flex items-center text-red-800">
+                    <i class="fas fa-exclamation-circle mr-2"></i>
+                    <span class="text-sm" x-text="error"></span>
+                </div>
+            </div>
+
+            <form @submit.prevent="login" class="space-y-6">
+                <!-- Username/Email Input -->
+                <div>
+                    <label for="username" class="block text-sm font-medium text-gray-700 mb-2">
+                        Username atau Email
+                        <span class="text-red-500">*</span>
+                    </label>
+                    <div class="relative">
+                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <i class="fas fa-user text-gray-400"></i>
+                        </div>
+                        <input 
+                            type="text" 
+                            id="username"
+                            x-model="form.username"
+                            placeholder="Masukkan username atau email"
+                            class="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            required
+                        >
+                    </div>
+                </div>
+
+                <!-- Password Input -->
+                <div>
+                    <label for="password" class="block text-sm font-medium text-gray-700 mb-2">
+                        Password
+                        <span class="text-red-500">*</span>
+                    </label>
+                    <div class="relative">
+                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <i class="fas fa-lock text-gray-400"></i>
+                        </div>
+                        <input 
+                            :type="showPassword ? 'text' : 'password'" 
+                            id="password"
+                            x-model="form.password"
+                            placeholder="Masukkan password"
+                            class="w-full pl-10 pr-12 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            required
+                        >
+                        <button 
+                            type="button"
+                            @click="showPassword = !showPassword"
+                            class="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600"
+                        >
+                            <i :class="showPassword ? 'fas fa-eye-slash' : 'fas fa-eye'"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Remember Me & Forgot Password -->
+                <div class="flex items-center justify-between">
+                    <label class="flex items-center">
+                        <input 
+                            type="checkbox" 
+                            x-model="form.remember"
+                            class="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                        >
+                        <span class="ml-2 text-sm text-gray-600">Ingat saya</span>
+                    </label>
+                    <a href="#" class="text-sm text-blue-600 hover:text-blue-800">
+                        Lupa password?
+                    </a>
+                </div>
+
+                <!-- Login Button -->
+                <button 
+                    type="submit"
+                    :disabled="loading"
+                    class="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-6 rounded-lg transition duration-200 disabled:bg-gray-300 disabled:cursor-not-allowed flex items-center justify-center space-x-2"
+                >
+                    <span x-show="!loading">
+                        <i class="fas fa-sign-in-alt mr-2"></i>
+                        Login
+                    </span>
+                    <span x-show="loading" class="flex items-center">
+                        <svg class="animate-spin h-5 w-5 mr-2" viewBox="0 0 24 24">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" fill="none"></circle>
+                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        Loading...
+                    </span>
+                </button>
+            </form>
+
+            <!-- Demo Credentials -->
+            <div class="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                <p class="text-xs font-semibold text-blue-800 mb-2">
+                    <i class="fas fa-info-circle mr-1"></i>
+                    Demo Credentials:
+                </p>
+                <div class="space-y-1 text-xs text-blue-700">
+                    <p><strong>Superadmin:</strong> superadmin / password123</p>
+                    <p><strong>Petugas:</strong> petugas / password123</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Back to Public Site -->
+        <div class="text-center mt-6">
+            <a href="public-nik-validation.html" class="text-white hover:text-blue-100 text-sm">
+                <i class="fas fa-arrow-left mr-2"></i>
+                Kembali ke Halaman Publik
+            </a>
+        </div>
+
+        <!-- Footer -->
+        <div class="text-center mt-8">
+            <p class="text-blue-100 text-sm">
+                &copy; 2025 Desa/Kelurahan Sejahtera
+            </p>
+        </div>
+    </div>
+
+    <!-- Alpine.js Data -->
+    <script>
+        function loginForm() {
+            return {
+                form: {
+                    username: '',
+                    password: '',
+                    remember: false
+                },
+                showPassword: false,
+                loading: false,
+                error: '',
+
+                login() {
+                    this.error = '';
+                    
+                    if (!this.form.username || !this.form.password) {
+                        this.error = 'Username dan password wajib diisi';
+                        return;
+                    }
+
+                    this.loading = true;
+
+                    // Simulate API call
+                    setTimeout(() => {
+                        this.loading = false;
+                        
+                        // Mock authentication
+                        if (
+                            (this.form.username === 'superadmin' && this.form.password === 'password123') ||
+                            (this.form.username === 'petugas' && this.form.password === 'password123')
+                        ) {
+                            // Success - redirect to dashboard
+                            localStorage.setItem('auth_token', 'demo_token_' + Date.now());
+                            localStorage.setItem('user_role', this.form.username);
+                            window.location.href = 'admin-dashboard.html';
+                        } else {
+                            this.error = 'Username atau password salah';
+                        }
+                    }, 1500);
+                }
+            }
+        }
+    </script>
+</body>
+</html>

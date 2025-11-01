@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard Admin - Sistem Surat Desa</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body class="bg-gray-100" x-data="dashboard()">
+    <!-- Wrapper -->
+    <div class="flex h-screen overflow-hidden">
+        <!-- Sidebar -->
+        <aside 
+            class="fixed inset-y-0 left-0 z-50 w-64 bg-gradient-to-b from-blue-800 to-blue-900 transform transition-transform duration-300 ease-in-out lg:translate-x-0"
+            :class="sidebarOpen ? 'translate-x-0' : '-translate-x-full'"
+        >
+            <!-- Logo -->
+            <div class="flex items-center justify-center h-16 bg-blue-900 border-b border-blue-700">
+                <div class="flex items-center space-x-3">
+                    <div class="w-10 h-10 bg-white rounded-full flex items-center justify-center">
+                        <i class="fas fa-landmark text-blue-600"></i>
+                    </div>
+                    <div class="text-white">
+                        <h1 class="text-lg font-bold">Surat Desa</h1>
+                        <p class="text-xs text-blue-200">Admin Panel</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- User Info -->
+            <div class="p-4 border-b border-blue-700">
+                <div class="flex items-center space-x-3">
+                    <div class="w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center">
+                        <i class="fas fa-user text-white"></i>
+                    </div>
+                    <div class="flex-1">
+                        <p class="text-white font-medium text-sm">Super Admin</p>
+                        <p class="text-blue-200 text-xs">admin@village.com</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Navigation -->
+            <nav class="flex-1 overflow-y-auto p-4">
+                <ul class="space-y-2">
+                    <li>
+                        <a href="admin-dashboard.html" class="flex items-center space-x-3 px-4 py-3 text-white bg-blue-700 rounded-lg">
+                            <i class="fas fa-th-large w-5"></i>
+                            <span>Dashboard</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="admin-letter-requests.html" class="flex items-center space-x-3 px-4 py-3 text-blue-100 hover:bg-blue-700 rounded-lg transition">
+                            <i class="fas fa-file-alt w-5"></i>
+                            <span>Permohonan Surat</span>
+                            <span class="ml-auto bg-red-500 text-white text-xs px-2 py-1 rounded-full">5</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="admin-citizens.html" class="flex items-center space-x-3 px-4 py-3 text-blue-100 hover:bg-blue-700 rounded-lg transition">
+                            <i class="fas fa-users w-5"></i>
+                            <span>Data Penduduk</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="admin-categories.html" class="flex items-center space-x-3 px-4 py-3 text-blue-100 hover:bg-blue-700 rounded-lg transition">
+                            <i class="fas fa-folder w-5"></i>
+                            <span>Kategori Surat</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="admin-templates.html" class="flex items-center space-x-3 px-4 py-3 text-blue-100 hover:bg-blue-700 rounded-lg transition">
+                            <i class="fas fa-file-invoice w-5"></i>
+                            <span>Template Surat</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="admin-users.html" class="flex items-center space-x-3 px-4 py-3 text-blue-100 hover:bg-blue-700 rounded-lg transition">
+                            <i class="fas fa-user-shield w-5"></i>
+                            <span>Manajemen User</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="admin-settings.html" class="flex items-center space-x-3 px-4 py-3 text-blue-100 hover:bg-blue-700 rounded-lg transition">
+                            <i class="fas fa-cog w-5"></i>
+                            <span>Pengaturan</span>
+                        </a>
+                    </li>
+                </ul>
+
+                <!-- Logout -->
+                <div class="mt-8 pt-4 border-t border-blue-700">
+                    <button 
+                        @click="logout"
+                        class="flex items-center space-x-3 px-4 py-3 text-blue-100 hover:bg-red-600 rounded-lg transition w-full"
+                    >
+                        <i class="fas fa-sign-out-alt w-5"></i>
+                        <span>Logout</span>
+                    </button>
+                </div>
+            </nav>
+        </aside>
+
+        <!-- Main Content -->
+        <div class="flex-1 flex flex-col overflow-hidden lg:ml-64">
+            <!-- Top Navbar -->
+            <header class="bg-white shadow-sm z-10">
+                <div class="flex items-center justify-between h-16 px-6">
+                    <!-- Mobile Menu Button -->
+                    <button 
+                        @click="sidebarOpen = !sidebarOpen"
+                        class="text-gray-600 lg:hidden"
+                    >
+                        <i class="fas fa-bars text-xl"></i>
+                    </button>
+
+                    <!-- Page Title -->
+                    <h2 class="text-xl font-semibold text-gray-800">Dashboard</h2>
+
+                    <!-- Right Side -->
+                    <div class="flex items-center space-x-4">
+                        <!-- Notifications -->
+                        <button class="relative text-gray-600 hover:text-gray-800">
+                            <i class="fas fa-bell text-xl"></i>
+                            <span class="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">3</span>
+                        </button>
+
+                        <!-- User Menu -->
+                        <div class="relative" x-data="{ open: false }">
+                            <button @click="open = !open" class="flex items-center space-x-2 text-gray-700 hover:text-gray-900">
+                                <div class="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center">
+                                    <i class="fas fa-user text-white text-sm"></i>
+                                </div>
+                                <i class="fas fa-chevron-down text-sm"></i>
+                            </button>
+
+                            <!-- Dropdown -->
+                            <div 
+                                x-show="open" 
+                                @click.away="open = false"
+                                class="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg py-2 z-20"
+                            >
+                                <a href="#" class="block px-4 py-2 text-gray-800 hover:bg-gray-100">
+                                    <i class="fas fa-user-circle mr-2"></i>
+                                    Profil
+                                </a>
+                                <a href="#" class="block px-4 py-2 text-gray-800 hover:bg-gray-100">
+                                    <i class="fas fa-cog mr-2"></i>
+                                    Pengaturan
+                                </a>
+                                <hr class="my-2">
+                                <button @click="logout" class="block w-full text-left px-4 py-2 text-red-600 hover:bg-gray-100">
+                                    <i class="fas fa-sign-out-alt mr-2"></i>
+                                    Logout
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </header>
+
+            <!-- Main Content Area -->
+            <main class="flex-1 overflow-y-auto p-6">
+                <!-- Statistics Cards -->
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
+                    <!-- Card 1 -->
+                    <div class="bg-white rounded-lg shadow p-6">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-gray-500 text-sm">Pending</p>
+                                <h3 class="text-3xl font-bold text-gray-800 mt-2">12</h3>
+                                <p class="text-sm text-orange-600 mt-2">
+                                    <i class="fas fa-clock mr-1"></i>
+                                    Menunggu verifikasi
+                                </p>
+                            </div>
+                            <div class="w-16 h-16 bg-orange-100 rounded-full flex items-center justify-center">
+                                <i class="fas fa-hourglass-half text-orange-600 text-2xl"></i>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Card 2 -->
+                    <div class="bg-white rounded-lg shadow p-6">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-gray-500 text-sm">Verified Hari Ini</p>
+                                <h3 class="text-3xl font-bold text-gray-800 mt-2">25</h3>
+                                <p class="text-sm text-green-600 mt-2">
+                                    <i class="fas fa-arrow-up mr-1"></i>
+                                    +8 dari kemarin
+                                </p>
+                            </div>
+                            <div class="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center">
+                                <i class="fas fa-check-circle text-green-600 text-2xl"></i>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Card 3 -->
+                    <div class="bg-white rounded-lg shadow p-6">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-gray-500 text-sm">Total Bulan Ini</p>
+                                <h3 class="text-3xl font-bold text-gray-800 mt-2">348</h3>
+                                <p class="text-sm text-blue-600 mt-2">
+                                    <i class="fas fa-calendar mr-1"></i>
+                                    Oktober 2025
+                                </p>
+                            </div>
+                            <div class="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center">
+                                <i class="fas fa-file-alt text-blue-600 text-2xl"></i>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Card 4 -->
+                    <div class="bg-white rounded-lg shadow p-6">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-gray-500 text-sm">Avg. Waktu Proses</p>
+                                <h3 class="text-3xl font-bold text-gray-800 mt-2">8</h3>
+                                <p class="text-sm text-purple-600 mt-2">
+                                    <i class="fas fa-clock mr-1"></i>
+                                    menit
+                                </p>
+                            </div>
+                            <div class="w-16 h-16 bg-purple-100 rounded-full flex items-center justify-center">
+                                <i class="fas fa-tachometer-alt text-purple-600 text-2xl"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Charts Row -->
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+                    <!-- Chart 1 -->
+                    <div class="bg-white rounded-lg shadow p-6">
+                        <h3 class="text-lg font-semibold text-gray-800 mb-4">Surat Per Kategori (Bulan Ini)</h3>
+                        <canvas id="categoryChart" height="250"></canvas>
+                    </div>
+
+                    <!-- Chart 2 -->
+                    <div class="bg-white rounded-lg shadow p-6">
+                        <h3 class="text-lg font-semibold text-gray-800 mb-4">Trend Permohonan (7 Hari Terakhir)</h3>
+                        <canvas id="trendChart" height="250"></canvas>
+                    </div>
+                </div>
+
+                <!-- Recent Requests Table -->
+                <div class="bg-white rounded-lg shadow">
+                    <div class="p-6 border-b border-gray-200">
+                        <div class="flex items-center justify-between">
+                            <h3 class="text-lg font-semibold text-gray-800">Permohonan Terbaru</h3>
+                            <a href="admin-letter-requests.html" class="text-blue-600 hover:text-blue-800 text-sm font-medium">
+                                Lihat Semua
+                                <i class="fas fa-arrow-right ml-1"></i>
+                            </a>
+                        </div>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full">
+                            <thead class="bg-gray-50">
+                                <tr>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">No. Permohonan</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Nama</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Jenis Surat</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Waktu</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Aksi</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-gray-200">
+                                <tr class="hover:bg-gray-50">
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-800">REQ-20251030-0015</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">Budi Santoso</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">Surat Keterangan Domisili</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">5 menit lalu</td>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <span class="px-2 py-1 text-xs rounded-full bg-orange-100 text-orange-800">Pending</span>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm">
+                                        <button class="text-blue-600 hover:text-blue-800 mr-3">
+                                            <i class="fas fa-eye"></i>
+                                        </button>
+                                        <button class="text-green-600 hover:text-green-800">
+                                            <i class="fas fa-check"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                                <tr class="hover:bg-gray-50">
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-800">REQ-20251030-0014</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">Siti Rahma</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">Surat Pengantar SKCK</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">15 menit lalu</td>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <span class="px-2 py-1 text-xs rounded-full bg-green-100 text-green-800">Verified</span>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm">
+                                        <button class="text-blue-600 hover:text-blue-800 mr-3">
+                                            <i class="fas fa-eye"></i>
+                                        </button>
+                                        <button class="text-purple-600 hover:text-purple-800">
+                                            <i class="fas fa-print"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                                <tr class="hover:bg-gray-50">
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-800">REQ-20251030-0013</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">Ahmad Fauzi</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">Surat Keterangan Usaha</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">32 menit lalu</td>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <span class="px-2 py-1 text-xs rounded-full bg-orange-100 text-orange-800">Pending</span>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm">
+                                        <button class="text-blue-600 hover:text-blue-800 mr-3">
+                                            <i class="fas fa-eye"></i>
+                                        </button>
+                                        <button class="text-green-600 hover:text-green-800">
+                                            <i class="fas fa-check"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <!-- Mobile Sidebar Overlay -->
+    <div 
+        x-show="sidebarOpen" 
+        @click="sidebarOpen = false"
+        class="fixed inset-0 bg-black bg-opacity-50 z-40 lg:hidden"
+    ></div>
+
+    <!-- Alpine.js Data -->
+    <script>
+        function dashboard() {
+            return {
+                sidebarOpen: false,
+
+                logout() {
+                    if (confirm('Apakah Anda yakin ingin logout?')) {
+                        localStorage.removeItem('auth_token');
+                        localStorage.removeItem('user_role');
+                        window.location.href = 'admin-login.html';
+                    }
+                }
+            }
+        }
+
+        // Charts
+        document.addEventListener('DOMContentLoaded', function() {
+            // Category Chart
+            const categoryCtx = document.getElementById('categoryChart').getContext('2d');
+            new Chart(categoryCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Surat Keterangan', 'Surat Pengantar', 'Surat Izin', 'Surat Domisili', 'Lainnya'],
+                    datasets: [{
+                        data: [120, 85, 60, 55, 28],
+                        backgroundColor: ['#3B82F6', '#10B981', '#F59E0B', '#8B5CF6', '#6B7280']
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false
+                }
+            });
+
+            // Trend Chart
+            const trendCtx = document.getElementById('trendChart').getContext('2d');
+            new Chart(trendCtx, {
+                type: 'line',
+                data: {
+                    labels: ['24 Okt', '25 Okt', '26 Okt', '27 Okt', '28 Okt', '29 Okt', '30 Okt'],
+                    datasets: [{
+                        label: 'Permohonan',
+                        data: [35, 42, 38, 45, 40, 48, 43],
+                        borderColor: '#3B82F6',
+                        backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                        tension: 0.4,
+                        fill: true
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Permohonan Surat - Sistem Surat Desa</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body class="bg-gray-100" x-data="letterRequests()">
+    <!-- Include Sidebar (same as dashboard) -->
+    <div class="flex h-screen overflow-hidden">
+        <!-- Sidebar (simplified for brevity - same as admin-dashboard.html) -->
+        <aside class="fixed inset-y-0 left-0 z-50 w-64 bg-gradient-to-b from-blue-800 to-blue-900 transform transition-transform duration-300 ease-in-out lg:translate-x-0" :class="sidebarOpen ? 'translate-x-0' : '-translate-x-full'">
+            <div class="flex items-center justify-center h-16 bg-blue-900 border-b border-blue-700">
+                <div class="flex items-center space-x-3">
+                    <div class="w-10 h-10 bg-white rounded-full flex items-center justify-center">
+                        <i class="fas fa-landmark text-blue-600"></i>
+                    </div>
+                    <div class="text-white">
+                        <h1 class="text-lg font-bold">Surat Desa</h1>
+                        <p class="text-xs text-blue-200">Admin Panel</p>
+                    </div>
+                </div>
+            </div>
+
+            <nav class="flex-1 overflow-y-auto p-4">
+                <ul class="space-y-2">
+                    <li>
+                        <a href="admin-dashboard.html" class="flex items-center space-x-3 px-4 py-3 text-blue-100 hover:bg-blue-700 rounded-lg transition">
+                            <i class="fas fa-th-large w-5"></i>
+                            <span>Dashboard</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="admin-letter-requests.html" class="flex items-center space-x-3 px-4 py-3 text-white bg-blue-700 rounded-lg">
+                            <i class="fas fa-file-alt w-5"></i>
+                            <span>Permohonan Surat</span>
+                            <span class="ml-auto bg-red-500 text-white text-xs px-2 py-1 rounded-full">12</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="admin-citizens.html" class="flex items-center space-x-3 px-4 py-3 text-blue-100 hover:bg-blue-700 rounded-lg transition">
+                            <i class="fas fa-users w-5"></i>
+                            <span>Data Penduduk</span>
+                        </a>
+                    </li>
+                </ul>
+            </nav>
+        </aside>
+
+        <!-- Main Content -->
+        <div class="flex-1 flex flex-col overflow-hidden lg:ml-64">
+            <!-- Top Navbar -->
+            <header class="bg-white shadow-sm z-10">
+                <div class="flex items-center justify-between h-16 px-6">
+                    <button @click="sidebarOpen = !sidebarOpen" class="text-gray-600 lg:hidden">
+                        <i class="fas fa-bars text-xl"></i>
+                    </button>
+                    <h2 class="text-xl font-semibold text-gray-800">Manajemen Permohonan Surat</h2>
+                    <div class="flex items-center space-x-4">
+                        <button class="relative text-gray-600 hover:text-gray-800">
+                            <i class="fas fa-bell text-xl"></i>
+                            <span class="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">3</span>
+                        </button>
+                    </div>
+                </div>
+            </header>
+
+            <!-- Main Content Area -->
+            <main class="flex-1 overflow-y-auto p-6">
+                <!-- Filters and Actions -->
+                <div class="bg-white rounded-lg shadow p-6 mb-6">
+                    <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                        <!-- Search -->
+                        <div class="md:col-span-2">
+                            <div class="relative">
+                                <input 
+                                    type="text" 
+                                    x-model="search"
+                                    placeholder="Cari berdasarkan nomor, nama, atau NIK..."
+                                    class="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                                >
+                                <i class="fas fa-search absolute left-3 top-3 text-gray-400"></i>
+                            </div>
+                        </div>
+
+                        <!-- Status Filter -->
+                        <div>
+                            <select x-model="statusFilter" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                                <option value="">Semua Status</option>
+                                <option value="pending">Pending</option>
+                                <option value="verified">Verified</option>
+                                <option value="printed">Printed</option>
+                                <option value="rejected">Rejected</option>
+                            </select>
+                        </div>
+
+                        <!-- Date Filter -->
+                        <div>
+                            <input 
+                                type="date" 
+                                x-model="dateFilter"
+                                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                            >
+                        </div>
+                    </div>
+
+                    <!-- Quick Stats -->
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6">
+                        <div class="text-center p-3 bg-orange-50 rounded-lg">
+                            <p class="text-2xl font-bold text-orange-600">12</p>
+                            <p class="text-xs text-gray-600">Pending</p>
+                        </div>
+                        <div class="text-center p-3 bg-green-50 rounded-lg">
+                            <p class="text-2xl font-bold text-green-600">25</p>
+                            <p class="text-xs text-gray-600">Verified</p>
+                        </div>
+                        <div class="text-center p-3 bg-blue-50 rounded-lg">
+                            <p class="text-2xl font-bold text-blue-600">18</p>
+                            <p class="text-xs text-gray-600">Printed</p>
+                        </div>
+                        <div class="text-center p-3 bg-red-50 rounded-lg">
+                            <p class="text-2xl font-bold text-red-600">3</p>
+                            <p class="text-xs text-gray-600">Rejected</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Requests Table -->
+                <div class="bg-white rounded-lg shadow overflow-hidden">
+                    <div class="overflow-x-auto">
+                        <table class="w-full">
+                            <thead class="bg-gray-50">
+                                <tr>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                                        <input type="checkbox" class="rounded">
+                                    </th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">No. Permohonan</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">NIK</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Nama Pemohon</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Jenis Surat</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tanggal</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Aksi</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-gray-200">
+                                <template x-for="request in filteredRequests" :key="request.id">
+                                    <tr class="hover:bg-gray-50">
+                                        <td class="px-6 py-4">
+                                            <input type="checkbox" class="rounded">
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap">
+                                            <span class="text-sm font-medium text-blue-600" x-text="request.number"></span>
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600" x-text="request.nik"></td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800" x-text="request.name"></td>
+                                        <td class="px-6 py-4 text-sm text-gray-600" x-text="request.letterType"></td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600" x-text="request.date"></td>
+                                        <td class="px-6 py-4 whitespace-nowrap">
+                                            <span 
+                                                class="px-2 py-1 text-xs rounded-full"
+                                                :class="{
+                                                    'bg-orange-100 text-orange-800': request.status === 'pending',
+                                                    'bg-green-100 text-green-800': request.status === 'verified',
+                                                    'bg-blue-100 text-blue-800': request.status === 'printed',
+                                                    'bg-red-100 text-red-800': request.status === 'rejected'
+                                                }"
+                                                x-text="request.statusText"
+                                            ></span>
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm">
+                                            <div class="flex space-x-2">
+                                                <button 
+                                                    @click="viewRequest(request)"
+                                                    class="text-blue-600 hover:text-blue-800"
+                                                    title="Lihat Detail"
+                                                >
+                                                    <i class="fas fa-eye"></i>
+                                                </button>
+                                                <button 
+                                                    x-show="request.status === 'pending'"
+                                                    @click="verifyRequest(request)"
+                                                    class="text-green-600 hover:text-green-800"
+                                                    title="Verifikasi"
+                                                >
+                                                    <i class="fas fa-check"></i>
+                                                </button>
+                                                <button 
+                                                    x-show="request.status === 'pending'"
+                                                    @click="rejectRequest(request)"
+                                                    class="text-red-600 hover:text-red-800"
+                                                    title="Tolak"
+                                                >
+                                                    <i class="fas fa-times"></i>
+                                                </button>
+                                                <button 
+                                                    x-show="request.status === 'verified'"
+                                                    @click="printRequest(request)"
+                                                    class="text-purple-600 hover:text-purple-800"
+                                                    title="Cetak"
+                                                >
+                                                    <i class="fas fa-print"></i>
+                                                </button>
+                                                <button 
+                                                    x-show="request.status === 'printed'"
+                                                    @click="downloadRequest(request)"
+                                                    class="text-indigo-600 hover:text-indigo-800"
+                                                    title="Download"
+                                                >
+                                                    <i class="fas fa-download"></i>
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                </template>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- Pagination -->
+                    <div class="px-6 py-4 border-t border-gray-200 flex items-center justify-between">
+                        <div class="text-sm text-gray-600">
+                            Menampilkan <span class="font-medium">1-10</span> dari <span class="font-medium">58</span> permohonan
+                        </div>
+                        <div class="flex space-x-2">
+                            <button class="px-3 py-1 border border-gray-300 rounded-lg text-sm hover:bg-gray-50">
+                                Previous
+                            </button>
+                            <button class="px-3 py-1 bg-blue-600 text-white rounded-lg text-sm">1</button>
+                            <button class="px-3 py-1 border border-gray-300 rounded-lg text-sm hover:bg-gray-50">2</button>
+                            <button class="px-3 py-1 border border-gray-300 rounded-lg text-sm hover:bg-gray-50">3</button>
+                            <button class="px-3 py-1 border border-gray-300 rounded-lg text-sm hover:bg-gray-50">
+                                Next
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <!-- Detail Modal -->
+    <div 
+        x-show="showModal" 
+        class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4"
+        @click.self="showModal = false"
+    >
+        <div class="bg-white rounded-lg max-w-3xl w-full max-h-[90vh] overflow-y-auto" @click.stop>
+            <div class="p-6 border-b border-gray-200">
+                <div class="flex items-center justify-between">
+                    <h3 class="text-xl font-semibold text-gray-800">Detail Permohonan</h3>
+                    <button @click="showModal = false" class="text-gray-400 hover:text-gray-600">
+                        <i class="fas fa-times text-xl"></i>
+                    </button>
+                </div>
+            </div>
+
+            <div class="p-6" x-show="selectedRequest">
+                <!-- Request Info -->
+                <div class="grid grid-cols-2 gap-4 mb-6">
+                    <div>
+                        <label class="text-sm text-gray-500">Nomor Permohonan</label>
+                        <p class="font-medium text-gray-800" x-text="selectedRequest?.number"></p>
+                    </div>
+                    <div>
+                        <label class="text-sm text-gray-500">Status</label>
+                        <p>
+                            <span 
+                                class="px-2 py-1 text-xs rounded-full"
+                                :class="{
+                                    'bg-orange-100 text-orange-800': selectedRequest?.status === 'pending',
+                                    'bg-green-100 text-green-800': selectedRequest?.status === 'verified'
+                                }"
+                                x-text="selectedRequest?.statusText"
+                            ></span>
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Citizen Data -->
+                <div class="mb-6">
+                    <h4 class="font-semibold text-gray-800 mb-3">Data Pemohon</h4>
+                    <div class="grid grid-cols-2 gap-4 bg-gray-50 p-4 rounded-lg">
+                        <div>
+                            <label class="text-sm text-gray-500">NIK</label>
+                            <p class="font-medium text-gray-800" x-text="selectedRequest?.nik"></p>
+                        </div>
+                        <div>
+                            <label class="text-sm text-gray-500">Nama Lengkap</label>
+                            <p class="font-medium text-gray-800" x-text="selectedRequest?.name"></p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Letter Info -->
+                <div class="mb-6">
+                    <h4 class="font-semibold text-gray-800 mb-3">Informasi Surat</h4>
+                    <div class="bg-gray-50 p-4 rounded-lg">
+                        <p class="text-sm text-gray-600 mb-2">Jenis Surat:</p>
+                        <p class="font-medium text-gray-800" x-text="selectedRequest?.letterType"></p>
+                    </div>
+                </div>
+
+                <!-- Preview PDF -->
+                <div class="mb-6">
+                    <h4 class="font-semibold text-gray-800 mb-3">Preview Surat</h4>
+                    <div class="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center bg-gray-50">
+                        <i class="fas fa-file-pdf text-red-500 text-5xl mb-4"></i>
+                        <p class="text-gray-600">PDF Preview akan ditampilkan di sini</p>
+                    </div>
+                </div>
+
+                <!-- Actions -->
+                <div class="flex space-x-3">
+                    <button 
+                        x-show="selectedRequest?.status === 'pending'"
+                        @click="verifyRequest(selectedRequest); showModal = false"
+                        class="flex-1 bg-green-600 hover:bg-green-700 text-white py-2 px-4 rounded-lg transition"
+                    >
+                        <i class="fas fa-check mr-2"></i>
+                        Verifikasi
+                    </button>
+                    <button 
+                        x-show="selectedRequest?.status === 'pending'"
+                        @click="rejectRequest(selectedRequest); showModal = false"
+                        class="flex-1 bg-red-600 hover:bg-red-700 text-white py-2 px-4 rounded-lg transition"
+                    >
+                        <i class="fas fa-times mr-2"></i>
+                        Tolak
+                    </button>
+                    <button 
+                        @click="showModal = false"
+                        class="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-800 py-2 px-4 rounded-lg transition"
+                    >
+                        Tutup
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function letterRequests() {
+            return {
+                sidebarOpen: false,
+                showModal: false,
+                selectedRequest: null,
+                search: '',
+                statusFilter: '',
+                dateFilter: '',
+
+                requests: [
+                    { id: 1, number: 'REQ-20251030-0015', nik: '3201234567890001', name: 'Budi Santoso', letterType: 'Surat Keterangan Domisili', date: '30 Okt 2025', status: 'pending', statusText: 'Pending' },
+                    { id: 2, number: 'REQ-20251030-0014', nik: '3201234567890002', name: 'Siti Rahma', letterType: 'Surat Pengantar SKCK', date: '30 Okt 2025', status: 'verified', statusText: 'Verified' },
+                    { id: 3, number: 'REQ-20251030-0013', nik: '3201234567890003', name: 'Ahmad Fauzi', letterType: 'Surat Keterangan Usaha', date: '30 Okt 2025', status: 'pending', statusText: 'Pending' },
+                    { id: 4, number: 'REQ-20251030-0012', nik: '3201234567890004', name: 'Dewi Lestari', letterType: 'Surat Izin Keramaian', date: '30 Okt 2025', status: 'printed', statusText: 'Printed' },
+                    { id: 5, number: 'REQ-20251030-0011', nik: '3201234567890005', name: 'Rudi Hermawan', letterType: 'Surat Keterangan Tidak Mampu', date: '30 Okt 2025', status: 'rejected', statusText: 'Rejected' },
+                ],
+
+                get filteredRequests() {
+                    return this.requests.filter(req => {
+                        const matchesSearch = !this.search || 
+                            req.number.toLowerCase().includes(this.search.toLowerCase()) ||
+                            req.name.toLowerCase().includes(this.search.toLowerCase()) ||
+                            req.nik.includes(this.search);
+                        
+                        const matchesStatus = !this.statusFilter || req.status === this.statusFilter;
+                        
+                        return matchesSearch && matchesStatus;
+                    });
+                },
+
+                viewRequest(request) {
+                    this.selectedRequest = request;
+                    this.showModal = true;
+                },
+
+                verifyRequest(request) {
+                    if (confirm(`Verifikasi permohonan ${request.number}?`)) {
+                        alert('Permohonan berhasil diverifikasi');
+                        request.status = 'verified';
+                        request.statusText = 'Verified';
+                    }
+                },
+
+                rejectRequest(request) {
+                    const reason = prompt('Alasan penolakan:');
+                    if (reason) {
+                        alert('Permohonan berhasil ditolak');
+                        request.status = 'rejected';
+                        request.statusText = 'Rejected';
+                    }
+                },
+
+                printRequest(request) {
+                    alert(`Mencetak surat ${request.number}`);
+                    request.status = 'printed';
+                    request.statusText = 'Printed';
+                },
+
+                downloadRequest(request) {
+                    alert(`Mengunduh PDF ${request.number}`);
+                }
+            }
+        }
+    </script>
+</body>
+</html>
