@@ -1,0 +1,17 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm install:*)",
+      "Bash(php artisan:*)",
+      "Bash(npm run build:*)",
+      "Bash(curl:*)",
+      "Bash(lsof:*)",
+      "Bash(resources/js/components/PublicLetterWizard.jsx)",
+      "Bash(awk:*)",
+      "Bash(kill:*)",
+      "Bash(npm run dev)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}
