@@ -1,0 +1,1097 @@
+import React, { useState } from 'react';
+import { createRoot } from 'react-dom/client';
+import { BrowserRouter, Routes, Route, Navigate, Link, useNavigate, useLocation } from 'react-router-dom';
+import { BarChart, Bar, LineChart, Line, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+
+// ==================== AUTH CONTEXT ====================
+const AuthContext = React.createContext();
+
+function AuthProvider({ children }) {
+    const [user, setUser] = useState(() => {
+        const savedUser = localStorage.getItem('admin_user');
+        return savedUser ? JSON.parse(savedUser) : null;
+    });
+
+    const login = (userData) => {
+        setUser(userData);
+        localStorage.setItem('admin_user', JSON.stringify(userData));
+    };
+
+    const logout = () => {
+        setUser(null);
+        localStorage.removeItem('admin_user');
+    };
+
+    return (
+        <AuthContext.Provider value={{ user, login, logout }}>
+            {children}
+        </AuthContext.Provider>
+    );
+}
+
+function useAuth() {
+    return React.useContext(AuthContext);
+}
+
+// ==================== DUMMY DATA ====================
+const STATS_DATA = {
+    today: 12,
+    week: 45,
+    month: 167,
+    total: 1234
+};
+
+const CHART_DATA = [
+    { name: 'Jan', surat: 65 },
+    { name: 'Feb', surat: 78 },
+    { name: 'Mar', surat: 90 },
+    { name: 'Apr', surat: 81 },
+    { name: 'Mei', surat: 95 },
+    { name: 'Jun', surat: 87 }
+];
+
+const LETTER_TYPES_DATA = [
+    { name: 'Domisili', value: 45 },
+    { name: 'Usaha', value: 30 },
+    { name: 'Tidak Mampu', value: 25 },
+    { name: 'Pengantar', value: 20 },
+    { name: 'Lainnya', value: 15 }
+];
+
+const COLORS = ['#3B82F6', '#10B981', '#F59E0B', '#8B5CF6', '#EC4899'];
+
+const RECENT_REQUESTS = [
+    { id: 1, nik: '3201234567890001', name: 'Budi Santoso', type: 'Surat Domisili', status: 'pending', date: '2025-11-01 09:30' },
+    { id: 2, nik: '3201234567890002', name: 'Siti Nurhaliza', type: 'Surat Usaha', status: 'approved', date: '2025-11-01 08:15' },
+    { id: 3, nik: '3201234567890003', name: 'Ahmad Yani', type: 'Surat Tidak Mampu', status: 'pending', date: '2025-10-31 16:45' },
+    { id: 4, nik: '3201234567890004', name: 'Dewi Lestari', type: 'Surat Pengantar KTP', status: 'rejected', date: '2025-10-31 14:20' },
+    { id: 5, nik: '3201234567890005', name: 'Joko Widodo', type: 'Surat Domisili', status: 'approved', date: '2025-10-31 11:00' }
+];
+
+const USERS_DATA = [
+    { id: 1, nik: '3201234567890001', name: 'Budi Santoso', email: 'budi@example.com', role: 'Admin', status: 'active' },
+    { id: 2, nik: '3201234567890002', name: 'Siti Nurhaliza', email: 'siti@example.com', role: 'Staff', status: 'active' },
+    { id: 3, nik: '3201234567890003', name: 'Ahmad Yani', email: 'ahmad@example.com', role: 'Staff', status: 'inactive' }
+];
+
+const RESIDENTS_DATA = [
+    { id: 1, nik: '3201234567890001', name: 'Budi Santoso', address: 'Jl. Merdeka No. 123', rt: '001', rw: '002', phone: '08123456789' },
+    { id: 2, nik: '3201234567890002', name: 'Siti Nurhaliza', address: 'Jl. Sudirman No. 45', rt: '002', rw: '003', phone: '08234567890' },
+    { id: 3, nik: '3201234567890003', name: 'Ahmad Yani', address: 'Jl. Gatot Subroto No. 67', rt: '003', rw: '001', phone: '08345678901' }
+];
+
+const LOG_ACTIVITY = [
+    { id: 1, user: 'Admin', action: 'Login', details: 'Login successful', timestamp: '2025-11-01 10:30:00', ip: '192.168.1.1' },
+    { id: 2, user: 'Staff', action: 'Approve Letter', details: 'Approved Surat Domisili #123', timestamp: '2025-11-01 10:25:00', ip: '192.168.1.2' },
+    { id: 3, user: 'Admin', action: 'Create User', details: 'Created new staff account', timestamp: '2025-11-01 10:15:00', ip: '192.168.1.1' }
+];
+
+// ==================== LAYOUT COMPONENTS ====================
+function Header() {
+    const { user, logout } = useAuth();
+    const [showProfileMenu, setShowProfileMenu] = useState(false);
+    const [showNotifications, setShowNotifications] = useState(false);
+    const navigate = useNavigate();
+
+    const handleLogout = () => {
+        logout();
+        navigate('/admin/login');
+    };
+
+    return (
+        <header className="bg-white shadow-sm border-b border-gray-200 sticky top-0 z-40">
+            <div className="px-4 py-3 flex items-center justify-between">
+                <div className="flex items-center space-x-4">
+                    <div className="flex items-center space-x-3">
+                        <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center">
+                            <i className="fas fa-landmark text-white"></i>
+                        </div>
+                        <div>
+                            <h1 className="text-lg font-bold text-gray-800">Admin Panel</h1>
+                            <p className="text-xs text-gray-500">Sistem Surat Desa</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div className="flex items-center space-x-4">
+                    {/* Search Bar */}
+                    <div className="hidden md:block">
+                        <div className="relative">
+                            <input
+                                type="text"
+                                placeholder="Cari..."
+                                className="w-64 px-4 py-2 pl-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            />
+                            <i className="fas fa-search absolute left-3 top-3 text-gray-400"></i>
+                        </div>
+                    </div>
+
+                    {/* Notifications */}
+                    <div className="relative">
+                        <button
+                            onClick={() => setShowNotifications(!showNotifications)}
+                            className="relative p-2 text-gray-600 hover:bg-gray-100 rounded-lg"
+                        >
+                            <i className="fas fa-bell text-xl"></i>
+                            <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>
+                        </button>
+
+                        {showNotifications && (
+                            <div className="absolute right-0 mt-2 w-80 bg-white rounded-lg shadow-xl border border-gray-200">
+                                <div className="p-4 border-b">
+                                    <h3 className="font-semibold">Notifikasi</h3>
+                                </div>
+                                <div className="max-h-96 overflow-y-auto">
+                                    <div className="p-4 hover:bg-gray-50 border-b">
+                                        <p className="text-sm font-medium">Permohonan surat baru</p>
+                                        <p className="text-xs text-gray-500">Budi Santoso mengajukan surat domisili</p>
+                                        <p className="text-xs text-gray-400 mt-1">5 menit lalu</p>
+                                    </div>
+                                    <div className="p-4 hover:bg-gray-50 border-b">
+                                        <p className="text-sm font-medium">Surat disetujui</p>
+                                        <p className="text-xs text-gray-500">Surat usaha telah disetujui</p>
+                                        <p className="text-xs text-gray-400 mt-1">1 jam lalu</p>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Profile Menu */}
+                    <div className="relative">
+                        <button
+                            onClick={() => setShowProfileMenu(!showProfileMenu)}
+                            className="flex items-center space-x-2 p-2 hover:bg-gray-100 rounded-lg"
+                        >
+                            <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center">
+                                <span className="text-white font-semibold">{user?.name?.[0] || 'A'}</span>
+                            </div>
+                            <div className="hidden md:block text-left">
+                                <p className="text-sm font-medium text-gray-800">{user?.name || 'Admin'}</p>
+                                <p className="text-xs text-gray-500">{user?.role || 'Administrator'}</p>
+                            </div>
+                            <i className="fas fa-chevron-down text-gray-400 text-xs"></i>
+                        </button>
+
+                        {showProfileMenu && (
+                            <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-xl border border-gray-200">
+                                <Link to="/admin/settings" className="block px-4 py-2 hover:bg-gray-50">
+                                    <i className="fas fa-cog mr-2"></i> Pengaturan
+                                </Link>
+                                <button onClick={handleLogout} className="w-full text-left px-4 py-2 hover:bg-gray-50 text-red-600">
+                                    <i className="fas fa-sign-out-alt mr-2"></i> Logout
+                                </button>
+                            </div>
+                        )}
+                    </div>
+                </div>
+            </div>
+        </header>
+    );
+}
+
+function Sidebar({ isOpen, toggleSidebar }) {
+    const location = useLocation();
+
+    const menuItems = [
+        { path: '/admin/dashboard', icon: 'fa-home', label: 'Dashboard' },
+        { path: '/admin/charts', icon: 'fa-chart-line', label: 'Grafik Aktivitas' },
+        { path: '/admin/requests', icon: 'fa-file-alt', label: 'Permohonan Surat' },
+        { path: '/admin/users', icon: 'fa-users-cog', label: 'Users' },
+        { path: '/admin/residents', icon: 'fa-users', label: 'Penduduk' },
+        { path: '/admin/reports', icon: 'fa-chart-bar', label: 'Reports' },
+        { path: '/admin/access', icon: 'fa-shield-alt', label: 'Access Management' },
+        { path: '/admin/settings', icon: 'fa-cog', label: 'Settings' },
+        { path: '/admin/logs', icon: 'fa-history', label: 'Log Activity' }
+    ];
+
+    return (
+        <>
+            {/* Overlay for mobile */}
+            {isOpen && (
+                <div
+                    className="fixed inset-0 bg-black bg-opacity-50 z-30 lg:hidden"
+                    onClick={toggleSidebar}
+                ></div>
+            )}
+
+            {/* Sidebar */}
+            <aside className={`fixed top-0 left-0 h-full bg-gray-900 text-white transition-all duration-300 z-40 ${isOpen ? 'w-64' : 'w-0 lg:w-20'}`}>
+                <div className="flex flex-col h-full">
+                    {/* Logo */}
+                    <div className="p-4 border-b border-gray-800">
+                        {isOpen ? (
+                            <div className="flex items-center justify-between">
+                                <span className="text-lg font-bold">Admin Panel</span>
+                                <button onClick={toggleSidebar} className="lg:hidden">
+                                    <i className="fas fa-times"></i>
+                                </button>
+                            </div>
+                        ) : (
+                            <div className="hidden lg:flex justify-center">
+                                <i className="fas fa-bars text-xl"></i>
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Menu Items */}
+                    <nav className="flex-1 overflow-y-auto py-4">
+                        {menuItems.map((item) => (
+                            <Link
+                                key={item.path}
+                                to={item.path}
+                                className={`flex items-center px-4 py-3 hover:bg-gray-800 transition-colors ${
+                                    location.pathname === item.path ? 'bg-gray-800 border-l-4 border-blue-500' : ''
+                                }`}
+                            >
+                                <i className={`fas ${item.icon} ${isOpen ? 'mr-3' : 'mx-auto'} text-lg`}></i>
+                                {isOpen && <span>{item.label}</span>}
+                            </Link>
+                        ))}
+                    </nav>
+                </div>
+            </aside>
+        </>
+    );
+}
+
+function Breadcrumb() {
+    const location = useLocation();
+    const pathnames = location.pathname.split('/').filter((x) => x);
+
+    return (
+        <nav className="flex items-center space-x-2 text-sm text-gray-600 mb-4">
+            <Link to="/admin/dashboard" className="hover:text-blue-600">
+                <i className="fas fa-home"></i>
+            </Link>
+            {pathnames.map((name, index) => {
+                const routeTo = `/${pathnames.slice(0, index + 1).join('/')}`;
+                const isLast = index === pathnames.length - 1;
+                return (
+                    <React.Fragment key={name}>
+                        <i className="fas fa-chevron-right text-xs"></i>
+                        {isLast ? (
+                            <span className="text-gray-800 font-medium capitalize">{name}</span>
+                        ) : (
+                            <Link to={routeTo} className="hover:text-blue-600 capitalize">
+                                {name}
+                            </Link>
+                        )}
+                    </React.Fragment>
+                );
+            })}
+        </nav>
+    );
+}
+
+function Footer() {
+    return (
+        <footer className="bg-white border-t border-gray-200 py-4 px-6 mt-8">
+            <div className="text-center text-sm text-gray-600">
+                <p>&copy; 2025 Sistem Surat Desa. All rights reserved.</p>
+            </div>
+        </footer>
+    );
+}
+
+function AdminLayout({ children }) {
+    const [sidebarOpen, setSidebarOpen] = useState(true);
+
+    return (
+        <div className="min-h-screen bg-gray-100">
+            <Sidebar isOpen={sidebarOpen} toggleSidebar={() => setSidebarOpen(!sidebarOpen)} />
+
+            <div className={`transition-all duration-300 ${sidebarOpen ? 'lg:ml-64' : 'lg:ml-20'}`}>
+                <Header />
+
+                <main className="p-6">
+                    {/* Toggle Button for Desktop */}
+                    <button
+                        onClick={() => setSidebarOpen(!sidebarOpen)}
+                        className="hidden lg:block mb-4 p-2 bg-white rounded-lg shadow hover:bg-gray-50"
+                    >
+                        <i className={`fas ${sidebarOpen ? 'fa-chevron-left' : 'fa-chevron-right'}`}></i>
+                    </button>
+
+                    {/* Mobile Menu Button */}
+                    <button
+                        onClick={() => setSidebarOpen(true)}
+                        className="lg:hidden mb-4 p-2 bg-white rounded-lg shadow"
+                    >
+                        <i className="fas fa-bars"></i>
+                    </button>
+
+                    <Breadcrumb />
+                    {children}
+                </main>
+
+                <Footer />
+            </div>
+        </div>
+    );
+}
+
+// ==================== PAGES ====================
+function LoginPage() {
+    const [email, setEmail] = useState('');
+    const [password, setPassword] = useState('');
+    const [loading, setLoading] = useState(false);
+    const { login } = useAuth();
+    const navigate = useNavigate();
+
+    const handleSubmit = (e) => {
+        e.preventDefault();
+        setLoading(true);
+
+        setTimeout(() => {
+            if (email === 'admin@example.com' && password === 'password') {
+                login({ name: 'Admin User', email: email, role: 'Administrator' });
+                navigate('/admin/dashboard');
+            } else {
+                alert('Email atau password salah!');
+            }
+            setLoading(false);
+        }, 1000);
+    };
+
+    return (
+        <div className="min-h-screen bg-gradient-to-br from-blue-600 to-indigo-700 flex items-center justify-center p-4">
+            <div className="max-w-md w-full bg-white rounded-2xl shadow-2xl p-8">
+                <div className="text-center mb-8">
+                    <div className="inline-block p-4 bg-blue-100 rounded-full mb-4">
+                        <i className="fas fa-lock text-blue-600 text-4xl"></i>
+                    </div>
+                    <h1 className="text-3xl font-bold text-gray-800">Admin Login</h1>
+                    <p className="text-gray-600 mt-2">Sistem Surat Desa</p>
+                </div>
+
+                <form onSubmit={handleSubmit} className="space-y-6">
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                            Email
+                        </label>
+                        <input
+                            type="email"
+                            value={email}
+                            onChange={(e) => setEmail(e.target.value)}
+                            placeholder="admin@example.com"
+                            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                            required
+                        />
+                    </div>
+
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                            Password
+                        </label>
+                        <input
+                            type="password"
+                            value={password}
+                            onChange={(e) => setPassword(e.target.value)}
+                            placeholder="••••••••"
+                            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                            required
+                        />
+                    </div>
+
+                    <button
+                        type="submit"
+                        disabled={loading}
+                        className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 rounded-lg transition disabled:bg-gray-300"
+                    >
+                        {loading ? 'Loading...' : 'Login'}
+                    </button>
+                </form>
+
+                <div className="mt-6 p-4 bg-blue-50 rounded-lg">
+                    <p className="text-sm text-blue-800">
+                        <strong>Demo credentials:</strong><br />
+                        Email: admin@example.com<br />
+                        Password: password
+                    </p>
+                </div>
+            </div>
+        </div>
+    );
+}
+
+function DashboardPage() {
+    return (
+        <div className="space-y-6">
+            <h1 className="text-3xl font-bold text-gray-800">Dashboard Overview</h1>
+
+            {/* Stats Cards */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                <div className="bg-white p-6 rounded-lg shadow">
+                    <div className="flex items-center justify-between">
+                        <div>
+                            <p className="text-sm text-gray-600">Hari Ini</p>
+                            <p className="text-3xl font-bold text-blue-600">{STATS_DATA.today}</p>
+                        </div>
+                        <div className="p-3 bg-blue-100 rounded-full">
+                            <i className="fas fa-calendar-day text-blue-600 text-2xl"></i>
+                        </div>
+                    </div>
+                </div>
+
+                <div className="bg-white p-6 rounded-lg shadow">
+                    <div className="flex items-center justify-between">
+                        <div>
+                            <p className="text-sm text-gray-600">Minggu Ini</p>
+                            <p className="text-3xl font-bold text-green-600">{STATS_DATA.week}</p>
+                        </div>
+                        <div className="p-3 bg-green-100 rounded-full">
+                            <i className="fas fa-calendar-week text-green-600 text-2xl"></i>
+                        </div>
+                    </div>
+                </div>
+
+                <div className="bg-white p-6 rounded-lg shadow">
+                    <div className="flex items-center justify-between">
+                        <div>
+                            <p className="text-sm text-gray-600">Bulan Ini</p>
+                            <p className="text-3xl font-bold text-amber-600">{STATS_DATA.month}</p>
+                        </div>
+                        <div className="p-3 bg-amber-100 rounded-full">
+                            <i className="fas fa-calendar-alt text-amber-600 text-2xl"></i>
+                        </div>
+                    </div>
+                </div>
+
+                <div className="bg-white p-6 rounded-lg shadow">
+                    <div className="flex items-center justify-between">
+                        <div>
+                            <p className="text-sm text-gray-600">Total Surat</p>
+                            <p className="text-3xl font-bold text-purple-600">{STATS_DATA.total}</p>
+                        </div>
+                        <div className="p-3 bg-purple-100 rounded-full">
+                            <i className="fas fa-file-alt text-purple-600 text-2xl"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {/* Charts */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div className="bg-white p-6 rounded-lg shadow">
+                    <h3 className="text-lg font-semibold mb-4">Tren Pengajuan Surat</h3>
+                    <ResponsiveContainer width="100%" height={300}>
+                        <LineChart data={CHART_DATA}>
+                            <CartesianGrid strokeDasharray="3 3" />
+                            <XAxis dataKey="name" />
+                            <YAxis />
+                            <Tooltip />
+                            <Legend />
+                            <Line type="monotone" dataKey="surat" stroke="#3B82F6" strokeWidth={2} />
+                        </LineChart>
+                    </ResponsiveContainer>
+                </div>
+
+                <div className="bg-white p-6 rounded-lg shadow">
+                    <h3 className="text-lg font-semibold mb-4">Surat per Jenis</h3>
+                    <ResponsiveContainer width="100%" height={300}>
+                        <PieChart>
+                            <Pie
+                                data={LETTER_TYPES_DATA}
+                                cx="50%"
+                                cy="50%"
+                                labelLine={false}
+                                label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                                outerRadius={80}
+                                fill="#8884d8"
+                                dataKey="value"
+                            >
+                                {LETTER_TYPES_DATA.map((entry, index) => (
+                                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                                ))}
+                            </Pie>
+                            <Tooltip />
+                        </PieChart>
+                    </ResponsiveContainer>
+                </div>
+            </div>
+
+            {/* Recent Requests */}
+            <div className="bg-white rounded-lg shadow">
+                <div className="p-6 border-b">
+                    <h3 className="text-lg font-semibold">Permohonan Terbaru</h3>
+                </div>
+                <div className="overflow-x-auto">
+                    <table className="w-full">
+                        <thead className="bg-gray-50">
+                            <tr>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Nama</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Jenis Surat</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tanggal</th>
+                            </tr>
+                        </thead>
+                        <tbody className="divide-y divide-gray-200">
+                            {RECENT_REQUESTS.slice(0, 5).map((request) => (
+                                <tr key={request.id} className="hover:bg-gray-50">
+                                    <td className="px-6 py-4">{request.name}</td>
+                                    <td className="px-6 py-4">{request.type}</td>
+                                    <td className="px-6 py-4">
+                                        <span className={`px-2 py-1 text-xs rounded-full ${
+                                            request.status === 'approved' ? 'bg-green-100 text-green-800' :
+                                            request.status === 'rejected' ? 'bg-red-100 text-red-800' :
+                                            'bg-yellow-100 text-yellow-800'
+                                        }`}>
+                                            {request.status}
+                                        </span>
+                                    </td>
+                                    <td className="px-6 py-4 text-sm text-gray-500">{request.date}</td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    );
+}
+
+function ChartsPage() {
+    return (
+        <div className="space-y-6">
+            <h1 className="text-3xl font-bold text-gray-800">Grafik Aktivitas Surat</h1>
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div className="bg-white p-6 rounded-lg shadow">
+                    <h3 className="text-lg font-semibold mb-4">Pengajuan per Bulan</h3>
+                    <ResponsiveContainer width="100%" height={350}>
+                        <BarChart data={CHART_DATA}>
+                            <CartesianGrid strokeDasharray="3 3" />
+                            <XAxis dataKey="name" />
+                            <YAxis />
+                            <Tooltip />
+                            <Legend />
+                            <Bar dataKey="surat" fill="#3B82F6" />
+                        </BarChart>
+                    </ResponsiveContainer>
+                </div>
+
+                <div className="bg-white p-6 rounded-lg shadow">
+                    <h3 className="text-lg font-semibold mb-4">Distribusi Jenis Surat</h3>
+                    <ResponsiveContainer width="100%" height={350}>
+                        <PieChart>
+                            <Pie
+                                data={LETTER_TYPES_DATA}
+                                cx="50%"
+                                cy="50%"
+                                labelLine={false}
+                                label={({ name, value }) => `${name}: ${value}`}
+                                outerRadius={100}
+                                fill="#8884d8"
+                                dataKey="value"
+                            >
+                                {LETTER_TYPES_DATA.map((entry, index) => (
+                                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                                ))}
+                            </Pie>
+                            <Tooltip />
+                            <Legend />
+                        </PieChart>
+                    </ResponsiveContainer>
+                </div>
+            </div>
+        </div>
+    );
+}
+
+function RequestsPage() {
+    const [filter, setFilter] = useState('all');
+
+    const filteredRequests = filter === 'all'
+        ? RECENT_REQUESTS
+        : RECENT_REQUESTS.filter(r => r.status === filter);
+
+    return (
+        <div className="space-y-6">
+            <div className="flex items-center justify-between">
+                <h1 className="text-3xl font-bold text-gray-800">Permohonan Surat</h1>
+                <button className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg">
+                    <i className="fas fa-plus mr-2"></i> Tambah Surat
+                </button>
+            </div>
+
+            {/* Filters */}
+            <div className="bg-white p-4 rounded-lg shadow flex items-center space-x-4">
+                <span className="text-sm font-medium">Filter:</span>
+                <button
+                    onClick={() => setFilter('all')}
+                    className={`px-4 py-2 rounded-lg ${filter === 'all' ? 'bg-blue-600 text-white' : 'bg-gray-100'}`}
+                >
+                    Semua
+                </button>
+                <button
+                    onClick={() => setFilter('pending')}
+                    className={`px-4 py-2 rounded-lg ${filter === 'pending' ? 'bg-yellow-600 text-white' : 'bg-gray-100'}`}
+                >
+                    Pending
+                </button>
+                <button
+                    onClick={() => setFilter('approved')}
+                    className={`px-4 py-2 rounded-lg ${filter === 'approved' ? 'bg-green-600 text-white' : 'bg-gray-100'}`}
+                >
+                    Approved
+                </button>
+                <button
+                    onClick={() => setFilter('rejected')}
+                    className={`px-4 py-2 rounded-lg ${filter === 'rejected' ? 'bg-red-600 text-white' : 'bg-gray-100'}`}
+                >
+                    Rejected
+                </button>
+            </div>
+
+            {/* Table */}
+            <div className="bg-white rounded-lg shadow overflow-hidden">
+                <table className="w-full">
+                    <thead className="bg-gray-50">
+                        <tr>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">NIK</th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Nama</th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Jenis Surat</th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tanggal</th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Aksi</th>
+                        </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-200">
+                        {filteredRequests.map((request) => (
+                            <tr key={request.id} className="hover:bg-gray-50">
+                                <td className="px-6 py-4 text-sm">{request.nik}</td>
+                                <td className="px-6 py-4 font-medium">{request.name}</td>
+                                <td className="px-6 py-4">{request.type}</td>
+                                <td className="px-6 py-4">
+                                    <span className={`px-3 py-1 text-xs rounded-full font-medium ${
+                                        request.status === 'approved' ? 'bg-green-100 text-green-800' :
+                                        request.status === 'rejected' ? 'bg-red-100 text-red-800' :
+                                        'bg-yellow-100 text-yellow-800'
+                                    }`}>
+                                        {request.status}
+                                    </span>
+                                </td>
+                                <td className="px-6 py-4 text-sm text-gray-500">{request.date}</td>
+                                <td className="px-6 py-4">
+                                    <button className="text-blue-600 hover:text-blue-800 mr-3">
+                                        <i className="fas fa-eye"></i>
+                                    </button>
+                                    <button className="text-green-600 hover:text-green-800 mr-3">
+                                        <i className="fas fa-check"></i>
+                                    </button>
+                                    <button className="text-red-600 hover:text-red-800">
+                                        <i className="fas fa-times"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                        ))}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    );
+}
+
+function UsersPage() {
+    return (
+        <div className="space-y-6">
+            <div className="flex items-center justify-between">
+                <h1 className="text-3xl font-bold text-gray-800">Dashboard Users</h1>
+                <button className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg">
+                    <i className="fas fa-plus mr-2"></i> Tambah User
+                </button>
+            </div>
+
+            <div className="bg-white rounded-lg shadow overflow-hidden">
+                <table className="w-full">
+                    <thead className="bg-gray-50">
+                        <tr>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">NIK</th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Nama</th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Email</th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Role</th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Aksi</th>
+                        </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-200">
+                        {USERS_DATA.map((user) => (
+                            <tr key={user.id} className="hover:bg-gray-50">
+                                <td className="px-6 py-4 text-sm">{user.nik}</td>
+                                <td className="px-6 py-4 font-medium">{user.name}</td>
+                                <td className="px-6 py-4">{user.email}</td>
+                                <td className="px-6 py-4">
+                                    <span className="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-xs">
+                                        {user.role}
+                                    </span>
+                                </td>
+                                <td className="px-6 py-4">
+                                    <span className={`px-3 py-1 rounded-full text-xs ${
+                                        user.status === 'active' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
+                                    }`}>
+                                        {user.status}
+                                    </span>
+                                </td>
+                                <td className="px-6 py-4">
+                                    <button className="text-blue-600 hover:text-blue-800 mr-3">
+                                        <i className="fas fa-edit"></i>
+                                    </button>
+                                    <button className="text-red-600 hover:text-red-800">
+                                        <i className="fas fa-trash"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                        ))}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    );
+}
+
+function ResidentsPage() {
+    return (
+        <div className="space-y-6">
+            <div className="flex items-center justify-between">
+                <h1 className="text-3xl font-bold text-gray-800">Data Penduduk</h1>
+                <button className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg">
+                    <i className="fas fa-plus mr-2"></i> Tambah Penduduk
+                </button>
+            </div>
+
+            <div className="bg-white rounded-lg shadow overflow-hidden">
+                <table className="w-full">
+                    <thead className="bg-gray-50">
+                        <tr>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">NIK</th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Nama</th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Alamat</th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">RT/RW</th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Telepon</th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Aksi</th>
+                        </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-200">
+                        {RESIDENTS_DATA.map((resident) => (
+                            <tr key={resident.id} className="hover:bg-gray-50">
+                                <td className="px-6 py-4 text-sm">{resident.nik}</td>
+                                <td className="px-6 py-4 font-medium">{resident.name}</td>
+                                <td className="px-6 py-4">{resident.address}</td>
+                                <td className="px-6 py-4">{resident.rt}/{resident.rw}</td>
+                                <td className="px-6 py-4">{resident.phone}</td>
+                                <td className="px-6 py-4">
+                                    <button className="text-blue-600 hover:text-blue-800 mr-3">
+                                        <i className="fas fa-eye"></i>
+                                    </button>
+                                    <button className="text-green-600 hover:text-green-800 mr-3">
+                                        <i className="fas fa-edit"></i>
+                                    </button>
+                                    <button className="text-red-600 hover:text-red-800">
+                                        <i className="fas fa-trash"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                        ))}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    );
+}
+
+function ReportsPage() {
+    return (
+        <div className="space-y-6">
+            <h1 className="text-3xl font-bold text-gray-800">Reports</h1>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div className="bg-white p-6 rounded-lg shadow hover:shadow-lg transition cursor-pointer">
+                    <div className="flex items-center space-x-4">
+                        <div className="p-3 bg-blue-100 rounded-lg">
+                            <i className="fas fa-file-pdf text-blue-600 text-2xl"></i>
+                        </div>
+                        <div>
+                            <h3 className="font-semibold">Laporan Bulanan</h3>
+                            <p className="text-sm text-gray-600">Download PDF</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div className="bg-white p-6 rounded-lg shadow hover:shadow-lg transition cursor-pointer">
+                    <div className="flex items-center space-x-4">
+                        <div className="p-3 bg-green-100 rounded-lg">
+                            <i className="fas fa-file-excel text-green-600 text-2xl"></i>
+                        </div>
+                        <div>
+                            <h3 className="font-semibold">Export Data</h3>
+                            <p className="text-sm text-gray-600">Download Excel</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div className="bg-white p-6 rounded-lg shadow hover:shadow-lg transition cursor-pointer">
+                    <div className="flex items-center space-x-4">
+                        <div className="p-3 bg-purple-100 rounded-lg">
+                            <i className="fas fa-chart-pie text-purple-600 text-2xl"></i>
+                        </div>
+                        <div>
+                            <h3 className="font-semibold">Statistik</h3>
+                            <p className="text-sm text-gray-600">View Analytics</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div className="bg-white p-6 rounded-lg shadow">
+                <h3 className="text-lg font-semibold mb-4">Generate Custom Report</h3>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                        <label className="block text-sm font-medium mb-2">Dari Tanggal</label>
+                        <input type="date" className="w-full px-4 py-2 border rounded-lg" />
+                    </div>
+                    <div>
+                        <label className="block text-sm font-medium mb-2">Sampai Tanggal</label>
+                        <input type="date" className="w-full px-4 py-2 border rounded-lg" />
+                    </div>
+                    <div>
+                        <label className="block text-sm font-medium mb-2">Jenis Surat</label>
+                        <select className="w-full px-4 py-2 border rounded-lg">
+                            <option>Semua</option>
+                            <option>Domisili</option>
+                            <option>Usaha</option>
+                            <option>Tidak Mampu</option>
+                        </select>
+                    </div>
+                </div>
+                <button className="mt-4 bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg">
+                    Generate Report
+                </button>
+            </div>
+        </div>
+    );
+}
+
+function AccessManagementPage() {
+    return (
+        <div className="space-y-6">
+            <h1 className="text-3xl font-bold text-gray-800">Access Management</h1>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="bg-white p-6 rounded-lg shadow">
+                    <h3 className="text-lg font-semibold mb-4">Roles</h3>
+                    <div className="space-y-3">
+                        <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                            <div>
+                                <p className="font-medium">Administrator</p>
+                                <p className="text-sm text-gray-600">Full access</p>
+                            </div>
+                            <button className="text-blue-600 hover:text-blue-800">
+                                <i className="fas fa-edit"></i>
+                            </button>
+                        </div>
+                        <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                            <div>
+                                <p className="font-medium">Staff</p>
+                                <p className="text-sm text-gray-600">Limited access</p>
+                            </div>
+                            <button className="text-blue-600 hover:text-blue-800">
+                                <i className="fas fa-edit"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div className="bg-white p-6 rounded-lg shadow">
+                    <h3 className="text-lg font-semibold mb-4">Permissions</h3>
+                    <div className="space-y-2">
+                        <label className="flex items-center space-x-2">
+                            <input type="checkbox" className="rounded" checked readOnly />
+                            <span>View Letters</span>
+                        </label>
+                        <label className="flex items-center space-x-2">
+                            <input type="checkbox" className="rounded" checked readOnly />
+                            <span>Approve Letters</span>
+                        </label>
+                        <label className="flex items-center space-x-2">
+                            <input type="checkbox" className="rounded" />
+                            <span>Delete Letters</span>
+                        </label>
+                        <label className="flex items-center space-x-2">
+                            <input type="checkbox" className="rounded" checked readOnly />
+                            <span>Manage Users</span>
+                        </label>
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+}
+
+function SettingsPage() {
+    return (
+        <div className="space-y-6">
+            <h1 className="text-3xl font-bold text-gray-800">Settings</h1>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="bg-white p-6 rounded-lg shadow">
+                    <h3 className="text-lg font-semibold mb-4">General Settings</h3>
+                    <div className="space-y-4">
+                        <div>
+                            <label className="block text-sm font-medium mb-2">Nama Desa</label>
+                            <input
+                                type="text"
+                                defaultValue="Desa Sejahtera"
+                                className="w-full px-4 py-2 border rounded-lg"
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium mb-2">Kode Desa</label>
+                            <input
+                                type="text"
+                                defaultValue="32.01.01.2001"
+                                className="w-full px-4 py-2 border rounded-lg"
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium mb-2">Alamat</label>
+                            <textarea
+                                className="w-full px-4 py-2 border rounded-lg"
+                                rows="3"
+                                defaultValue="Jl. Raya Desa No. 1, Kecamatan Makmur"
+                            ></textarea>
+                        </div>
+                    </div>
+                </div>
+
+                <div className="bg-white p-6 rounded-lg shadow">
+                    <h3 className="text-lg font-semibold mb-4">Email Settings</h3>
+                    <div className="space-y-4">
+                        <div>
+                            <label className="block text-sm font-medium mb-2">SMTP Host</label>
+                            <input
+                                type="text"
+                                defaultValue="smtp.gmail.com"
+                                className="w-full px-4 py-2 border rounded-lg"
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium mb-2">SMTP Port</label>
+                            <input
+                                type="text"
+                                defaultValue="587"
+                                className="w-full px-4 py-2 border rounded-lg"
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium mb-2">Email From</label>
+                            <input
+                                type="email"
+                                defaultValue="admin@desasejahtera.id"
+                                className="w-full px-4 py-2 border rounded-lg"
+                            />
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div className="flex justify-end">
+                <button className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg">
+                    Simpan Perubahan
+                </button>
+            </div>
+        </div>
+    );
+}
+
+function LogsPage() {
+    return (
+        <div className="space-y-6">
+            <h1 className="text-3xl font-bold text-gray-800">Log Activity</h1>
+
+            <div className="bg-white rounded-lg shadow overflow-hidden">
+                <table className="w-full">
+                    <thead className="bg-gray-50">
+                        <tr>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">User</th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Action</th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Details</th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">IP Address</th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Timestamp</th>
+                        </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-200">
+                        {LOG_ACTIVITY.map((log) => (
+                            <tr key={log.id} className="hover:bg-gray-50">
+                                <td className="px-6 py-4 font-medium">{log.user}</td>
+                                <td className="px-6 py-4">
+                                    <span className="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-xs">
+                                        {log.action}
+                                    </span>
+                                </td>
+                                <td className="px-6 py-4 text-sm">{log.details}</td>
+                                <td className="px-6 py-4 text-sm text-gray-500">{log.ip}</td>
+                                <td className="px-6 py-4 text-sm text-gray-500">{log.timestamp}</td>
+                            </tr>
+                        ))}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    );
+}
+
+// ==================== PROTECTED ROUTE ====================
+function ProtectedRoute({ children }) {
+    const { user } = useAuth();
+    return user ? children : <Navigate to="/admin/login" replace />;
+}
+
+// ==================== MAIN APP ====================
+function AdminApp() {
+    return (
+        <AuthProvider>
+            <BrowserRouter>
+                <Routes>
+                    <Route path="/admin/login" element={<LoginPage />} />
+                    <Route path="/admin/*" element={
+                        <ProtectedRoute>
+                            <AdminLayout>
+                                <Routes>
+                                    <Route path="dashboard" element={<DashboardPage />} />
+                                    <Route path="charts" element={<ChartsPage />} />
+                                    <Route path="requests" element={<RequestsPage />} />
+                                    <Route path="users" element={<UsersPage />} />
+                                    <Route path="residents" element={<ResidentsPage />} />
+                                    <Route path="reports" element={<ReportsPage />} />
+                                    <Route path="access" element={<AccessManagementPage />} />
+                                    <Route path="settings" element={<SettingsPage />} />
+                                    <Route path="logs" element={<LogsPage />} />
+                                    <Route path="*" element={<Navigate to="/admin/dashboard" replace />} />
+                                </Routes>
+                            </AdminLayout>
+                        </ProtectedRoute>
+                    } />
+                    <Route path="*" element={<Navigate to="/admin/login" replace />} />
+                </Routes>
+            </BrowserRouter>
+        </AuthProvider>
+    );
+}
+
+// Mount when ready
+if (typeof window !== 'undefined') {
+    const mountApp = () => {
+        const rootElement = document.getElementById('admin-root');
+        if (rootElement) {
+            const root = createRoot(rootElement);
+            root.render(<AdminApp />);
+        }
+    };
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', mountApp);
+    } else {
+        mountApp();
+    }
+}
