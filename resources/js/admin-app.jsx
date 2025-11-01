@@ -88,44 +88,16 @@ const LOG_ACTIVITY = [
 
 // ==================== LAYOUT COMPONENTS ====================
 function Header() {
-    const { user, logout } = useAuth();
-    const [showProfileMenu, setShowProfileMenu] = useState(false);
     const [showNotifications, setShowNotifications] = useState(false);
-    const navigate = useNavigate();
-
-    const handleLogout = () => {
-        logout();
-        navigate('/admin/login');
-    };
 
     return (
         <header className="bg-white shadow-sm border-b border-gray-200 sticky top-0 z-40">
-            <div className="px-4 py-3 flex items-center justify-between">
-                <div className="flex items-center space-x-4">
-                    <div className="flex items-center space-x-3">
-                        <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center">
-                            <i className="fas fa-landmark text-white"></i>
-                        </div>
-                        <div>
-                            <h1 className="text-lg font-bold text-gray-800">Admin Panel</h1>
-                            <p className="text-xs text-gray-500">Sistem Surat Desa</p>
-                        </div>
-                    </div>
+            <div className="px-6 py-4 flex items-center justify-between">
+                <div>
+                    <h1 className="text-xl font-bold text-gray-800">Sistem Pelayanan Surat Desa</h1>
                 </div>
 
                 <div className="flex items-center space-x-4">
-                    {/* Search Bar */}
-                    <div className="hidden md:block">
-                        <div className="relative">
-                            <input
-                                type="text"
-                                placeholder="Cari..."
-                                className="w-64 px-4 py-2 pl-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                            />
-                            <i className="fas fa-search absolute left-3 top-3 text-gray-400"></i>
-                        </div>
-                    </div>
-
                     {/* Notifications */}
                     <div className="relative">
                         <button
@@ -156,34 +128,6 @@ function Header() {
                             </div>
                         )}
                     </div>
-
-                    {/* Profile Menu */}
-                    <div className="relative">
-                        <button
-                            onClick={() => setShowProfileMenu(!showProfileMenu)}
-                            className="flex items-center space-x-2 p-2 hover:bg-gray-100 rounded-lg"
-                        >
-                            <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center">
-                                <span className="text-white font-semibold">{user?.name?.[0] || 'A'}</span>
-                            </div>
-                            <div className="hidden md:block text-left">
-                                <p className="text-sm font-medium text-gray-800">{user?.name || 'Admin'}</p>
-                                <p className="text-xs text-gray-500">{user?.role || 'Administrator'}</p>
-                            </div>
-                            <i className="fas fa-chevron-down text-gray-400 text-xs"></i>
-                        </button>
-
-                        {showProfileMenu && (
-                            <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-xl border border-gray-200">
-                                <Link to="/admin/settings" className="block px-4 py-2 hover:bg-gray-50">
-                                    <i className="fas fa-cog mr-2"></i> Pengaturan
-                                </Link>
-                                <button onClick={handleLogout} className="w-full text-left px-4 py-2 hover:bg-gray-50 text-red-600">
-                                    <i className="fas fa-sign-out-alt mr-2"></i> Logout
-                                </button>
-                            </div>
-                        )}
-                    </div>
                 </div>
             </div>
         </header>
@@ -192,11 +136,18 @@ function Header() {
 
 function Sidebar({ isOpen, toggleSidebar }) {
     const location = useLocation();
+    const { user, logout } = useAuth();
+    const navigate = useNavigate();
+
+    const handleLogout = () => {
+        logout();
+        navigate('/admin/login');
+    };
 
     const menuItems = [
         { path: '/admin/dashboard', icon: 'fa-home', label: 'Dashboard' },
         { path: '/admin/charts', icon: 'fa-chart-line', label: 'Grafik Aktivitas' },
-        { path: '/admin/requests', icon: 'fa-file-alt', label: 'Permohonan Surat' },
+        { path: '/admin/requests', icon: 'fa-file-alt', label: 'Permohonan Surat', badge: 5 },
         { path: '/admin/users', icon: 'fa-users-cog', label: 'Users' },
         { path: '/admin/residents', icon: 'fa-users', label: 'Penduduk' },
         { path: '/admin/reports', icon: 'fa-chart-bar', label: 'Reports' },
@@ -216,20 +167,35 @@ function Sidebar({ isOpen, toggleSidebar }) {
             )}
 
             {/* Sidebar */}
-            <aside className={`fixed top-0 left-0 h-full bg-gray-900 text-white transition-all duration-300 z-40 ${isOpen ? 'w-64' : 'w-0 lg:w-20'}`}>
+            <aside className={`fixed top-0 left-0 h-full bg-gradient-to-b from-blue-800 to-blue-900 text-white transition-all duration-300 z-40 ${isOpen ? 'w-64' : 'w-0 lg:w-20'}`}>
                 <div className="flex flex-col h-full">
                     {/* Logo */}
-                    <div className="p-4 border-b border-gray-800">
+                    <div className="p-4 border-b border-blue-700">
                         {isOpen ? (
-                            <div className="flex items-center justify-between">
-                                <span className="text-lg font-bold">Admin Panel</span>
-                                <button onClick={toggleSidebar} className="lg:hidden">
-                                    <i className="fas fa-times"></i>
-                                </button>
+                            <div>
+                                <div className="flex items-center justify-between mb-4">
+                                    <div className="flex items-center space-x-2">
+                                        <i className="fas fa-landmark text-2xl"></i>
+                                        <span className="text-lg font-bold">Desa App</span>
+                                    </div>
+                                    <button onClick={toggleSidebar} className="lg:hidden">
+                                        <i className="fas fa-times"></i>
+                                    </button>
+                                </div>
+                                {/* User Info */}
+                                <div className="flex items-center space-x-3 p-3 bg-blue-700 bg-opacity-50 rounded-lg">
+                                    <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center">
+                                        <span className="text-blue-800 font-bold text-lg">{user?.name?.[0] || 'A'}</span>
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                        <p className="text-sm font-semibold truncate">Super Admin</p>
+                                        <p className="text-xs text-blue-200 truncate">{user?.email || 'admin@example.com'}</p>
+                                    </div>
+                                </div>
                             </div>
                         ) : (
                             <div className="hidden lg:flex justify-center">
-                                <i className="fas fa-bars text-xl"></i>
+                                <i className="fas fa-landmark text-2xl"></i>
                             </div>
                         )}
                     </div>
@@ -240,15 +206,39 @@ function Sidebar({ isOpen, toggleSidebar }) {
                             <Link
                                 key={item.path}
                                 to={item.path}
-                                className={`flex items-center px-4 py-3 hover:bg-gray-800 transition-colors ${
-                                    location.pathname === item.path ? 'bg-gray-800 border-l-4 border-blue-500' : ''
+                                className={`flex items-center px-4 py-3 transition-colors ${
+                                    location.pathname === item.path
+                                        ? 'bg-blue-700 text-white'
+                                        : 'text-blue-100 hover:bg-blue-700'
                                 }`}
                             >
                                 <i className={`fas ${item.icon} ${isOpen ? 'mr-3' : 'mx-auto'} text-lg`}></i>
-                                {isOpen && <span>{item.label}</span>}
+                                {isOpen && (
+                                    <div className="flex items-center justify-between flex-1">
+                                        <span>{item.label}</span>
+                                        {item.badge && (
+                                            <span className="bg-red-500 text-white text-xs px-2 py-1 rounded-full">
+                                                {item.badge}
+                                            </span>
+                                        )}
+                                    </div>
+                                )}
                             </Link>
                         ))}
                     </nav>
+
+                    {/* Logout Button */}
+                    {isOpen && (
+                        <div className="border-t border-blue-700 p-4">
+                            <button
+                                onClick={handleLogout}
+                                className="w-full flex items-center px-4 py-3 text-blue-100 hover:bg-blue-700 rounded-lg transition-colors"
+                            >
+                                <i className="fas fa-sign-out-alt mr-3 text-lg"></i>
+                                <span>Logout</span>
+                            </button>
+                        </div>
+                    )}
                 </div>
             </aside>
         </>
