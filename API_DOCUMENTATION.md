@@ -309,3 +309,402 @@ curl -X GET 'http://localhost:8000/api/v1/nonexistent' \
 - Tokens are stored in the `personal_access_tokens` table
 - Old tokens are deleted when user logs in again
 - Include `Accept: application/json` header for proper JSON responses
+
+## User Management Endpoints
+
+All user management endpoints require authentication. Include the Bearer token in the Authorization header.
+
+### 1. Get All Users
+
+**Endpoint:** `GET /api/v1/users`
+
+**Description:** Retrieve a paginated list of all users with their roles and permissions
+
+**Request Headers:**
+```
+Authorization: Bearer {token}
+Accept: application/json
+```
+
+**Query Parameters:**
+- `per_page` (optional): Number of items per page (default: 15)
+- `search` (optional): Search by name, email, or username
+
+**Example Request:**
+```bash
+curl -X GET "http://localhost:8000/api/v1/users?per_page=10&search=admin" \
+  -H "Authorization: Bearer {token}" \
+  -H "Accept: application/json"
+```
+
+**Success Response (200):**
+```json
+{
+  "success": true,
+  "data": {
+    "users": [
+      {
+        "id": 1,
+        "name": "Admin User",
+        "email": "admin@example.com",
+        "username": "admin",
+        "email_verified_at": null,
+        "last_login_at": null,
+        "created_at": "2025-11-01T07:15:19.000000Z",
+        "updated_at": "2025-11-01T07:15:19.000000Z",
+        "deleted_at": null,
+        "roles": [...],
+        "permissions": [...]
+      }
+    ],
+    "pagination": {
+      "current_page": 1,
+      "last_page": 5,
+      "per_page": 10,
+      "total": 45
+    }
+  }
+}
+```
+
+---
+
+### 2. Get Single User
+
+**Endpoint:** `GET /api/v1/users/{id}`
+
+**Description:** Retrieve detailed information about a specific user
+
+**Request Headers:**
+```
+Authorization: Bearer {token}
+Accept: application/json
+```
+
+**Example Request:**
+```bash
+curl -X GET http://localhost:8000/api/v1/users/1 \
+  -H "Authorization: Bearer {token}" \
+  -H "Accept: application/json"
+```
+
+**Success Response (200):**
+```json
+{
+  "success": true,
+  "data": {
+    "user": {
+      "id": 1,
+      "name": "Admin User",
+      "email": "admin@example.com",
+      "username": "admin",
+      "roles": ["Admin"],
+      "permissions": ["view-users", "create-users", ...],
+      "created_at": "2025-11-01T07:15:19.000000Z",
+      "updated_at": "2025-11-01T07:15:19.000000Z"
+    }
+  }
+}
+```
+
+**Error Response - Not Found (404):**
+```json
+{
+  "success": false,
+  "message": "User not found"
+}
+```
+
+---
+
+### 3. Create User
+
+**Endpoint:** `POST /api/v1/users`
+
+**Description:** Create a new user with optional role assignment
+
+**Request Headers:**
+```
+Authorization: Bearer {token}
+Content-Type: application/json
+Accept: application/json
+```
+
+**Request Body:**
+```json
+{
+  "name": "John Doe",
+  "email": "john@example.com",
+  "username": "johndoe",
+  "password": "password123",
+  "password_confirmation": "password123",
+  "roles": ["Staff"]
+}
+```
+
+**Field Requirements:**
+- `name`: required, string, max 255 characters
+- `email`: required, email format, unique, max 255 characters
+- `username`: required, string, unique, max 255 characters, alphanumeric with dashes/underscores
+- `password`: required, string, min 8 characters, must match confirmation
+- `password_confirmation`: required if password is provided
+- `roles`: optional, array of existing role names
+
+**Example Request:**
+```bash
+curl -X POST http://localhost:8000/api/v1/users \
+  -H "Authorization: Bearer {token}" \
+  -H "Content-Type: application/json" \
+  -H "Accept: application/json" \
+  -d '{
+    "name": "John Doe",
+    "email": "john@example.com",
+    "username": "johndoe",
+    "password": "password123",
+    "password_confirmation": "password123",
+    "roles": ["Staff"]
+  }'
+```
+
+**Success Response (201):**
+```json
+{
+  "success": true,
+  "message": "User created successfully",
+  "data": {
+    "user": {
+      "id": 10,
+      "name": "John Doe",
+      "email": "john@example.com",
+      "username": "johndoe",
+      "roles": ["Staff"],
+      "permissions": ["view-letter-requests", ...],
+      "created_at": "2025-11-01T12:04:38.000000Z"
+    }
+  }
+}
+```
+
+**Error Response - Validation Failed (422):**
+```json
+{
+  "success": false,
+  "message": "Validation failed",
+  "errors": {
+    "email": ["Email already exists"],
+    "password": ["Password confirmation does not match"]
+  }
+}
+```
+
+---
+
+### 4. Update User
+
+**Endpoint:** `PUT /api/v1/users/{id}` or `PATCH /api/v1/users/{id}`
+
+**Description:** Update an existing user's information
+
+**Request Headers:**
+```
+Authorization: Bearer {token}
+Content-Type: application/json
+Accept: application/json
+```
+
+**Request Body (all fields optional):**
+```json
+{
+  "name": "John Doe Updated",
+  "email": "john.updated@example.com",
+  "username": "johndoe_new",
+  "password": "newpassword123",
+  "password_confirmation": "newpassword123",
+  "roles": ["Admin"]
+}
+```
+
+**Field Requirements:**
+- All fields are optional (use `sometimes` validation)
+- Email and username must be unique (excluding current user)
+- Password requires confirmation if provided
+
+**Example Request:**
+```bash
+curl -X PUT http://localhost:8000/api/v1/users/10 \
+  -H "Authorization: Bearer {token}" \
+  -H "Content-Type: application/json" \
+  -H "Accept: application/json" \
+  -d '{
+    "name": "John Doe Updated",
+    "email": "john.updated@example.com"
+  }'
+```
+
+**Success Response (200):**
+```json
+{
+  "success": true,
+  "message": "User updated successfully",
+  "data": {
+    "user": {
+      "id": 10,
+      "name": "John Doe Updated",
+      "email": "john.updated@example.com",
+      "username": "johndoe",
+      "roles": ["Staff"],
+      "permissions": ["view-letter-requests", ...],
+      "updated_at": "2025-11-01T12:10:45.000000Z"
+    }
+  }
+}
+```
+
+**Error Response - Not Found (404):**
+```json
+{
+  "success": false,
+  "message": "User not found"
+}
+```
+
+---
+
+### 5. Delete User
+
+**Endpoint:** `DELETE /api/v1/users/{id}`
+
+**Description:** Delete a user and revoke all their tokens
+
+**Request Headers:**
+```
+Authorization: Bearer {token}
+Accept: application/json
+```
+
+**Example Request:**
+```bash
+curl -X DELETE http://localhost:8000/api/v1/users/10 \
+  -H "Authorization: Bearer {token}" \
+  -H "Accept: application/json"
+```
+
+**Success Response (200):**
+```json
+{
+  "success": true,
+  "message": "User deleted successfully"
+}
+```
+
+**Error Response - Cannot Delete Self (403):**
+```json
+{
+  "success": false,
+  "message": "You cannot delete your own account"
+}
+```
+
+**Error Response - Not Found (404):**
+```json
+{
+  "success": false,
+  "message": "User not found"
+}
+```
+
+---
+
+## API Response Format
+
+All API endpoints follow a consistent response format:
+
+### Success Response Structure:
+```json
+{
+  "success": true,
+  "message": "Optional success message",
+  "data": {
+    // Response data here
+  }
+}
+```
+
+### Error Response Structure:
+```json
+{
+  "success": false,
+  "message": "Error message",
+  "errors": {
+    // Validation errors (for 422 responses)
+  }
+}
+```
+
+### HTTP Status Codes:
+- `200` - Success (GET, PUT, DELETE)
+- `201` - Created (POST)
+- `401` - Unauthenticated
+- `403` - Forbidden
+- `404` - Not Found
+- `422` - Validation Error
+
+---
+
+## Testing Examples
+
+### Complete CRUD Flow:
+
+```bash
+# 1. Login
+TOKEN=$(curl -s -X POST http://localhost:8000/api/v1/login \
+  -H "Content-Type: application/json" \
+  -d '{"email":"superadmin@example.com","password":"password"}' \
+  | jq -r '.data.token')
+
+# 2. Create User
+curl -X POST http://localhost:8000/api/v1/users \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Test User",
+    "email": "test@example.com",
+    "username": "testuser",
+    "password": "password123",
+    "password_confirmation": "password123",
+    "roles": ["Staff"]
+  }'
+
+# 3. List Users
+curl -X GET "http://localhost:8000/api/v1/users?per_page=10" \
+  -H "Authorization: Bearer $TOKEN"
+
+# 4. Get Single User
+curl -X GET http://localhost:8000/api/v1/users/10 \
+  -H "Authorization: Bearer $TOKEN"
+
+# 5. Update User
+curl -X PUT http://localhost:8000/api/v1/users/10 \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Test User Updated"
+  }'
+
+# 6. Delete User
+curl -X DELETE http://localhost:8000/api/v1/users/10 \
+  -H "Authorization: Bearer $TOKEN"
+```
+
+---
+
+## Notes
+
+- All timestamps are in UTC ISO 8601 format
+- User deletion also deletes all associated authentication tokens
+- Users cannot delete their own account
+- Password must be at least 8 characters
+- Username can only contain letters, numbers, dashes and underscores
+- Roles must exist in the system before assignment
+- Search functionality searches across name, email, and username fields
+
