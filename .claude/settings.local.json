@@ -18,7 +18,8 @@
       "Bash(.gitignore)",
       "Bash(pkill:*)",
       "Bash(TOKEN=\"1|HRHcWRAa7KIoV66xxv79lQDqg78indcHZrizMKL905c430ad\")",
-      "Bash(test:*)"
+      "Bash(test:*)",
+      "Bash(TOKEN=\"2|q1HXqqLsPrO0JpuMcVTFHaYdn2JeemL3j66zIY6Re0b5606f\")"
     ],
     "deny": [],
     "ask": []

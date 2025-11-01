@@ -4,6 +4,8 @@ use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\UserController;
 use App\Http\Controllers\Api\RoleController;
 use App\Http\Controllers\Api\PermissionController;
+use App\Http\Controllers\Api\LetterCategoryController;
+use App\Http\Controllers\Api\LetterTemplateController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -26,6 +28,15 @@ Route::middleware('auth:sanctum')->group(function () {
     // Permission Management
     Route::get('permissions/all', [PermissionController::class, 'all']);
     Route::apiResource('permissions', PermissionController::class)->only(['index', 'show']);
+
+    // Letter Category Management
+    Route::get('letter-categories/all', [LetterCategoryController::class, 'all']);
+    Route::post('letter-categories/reorder', [LetterCategoryController::class, 'reorder']);
+    Route::apiResource('letter-categories', LetterCategoryController::class);
+
+    // Letter Template Management
+    Route::get('letter-templates/all', [LetterTemplateController::class, 'all']);
+    Route::apiResource('letter-templates', LetterTemplateController::class);
 
     // Legacy route for compatibility
     Route::get('/user', function (Request $request) {
