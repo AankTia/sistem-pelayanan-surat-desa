@@ -708,3 +708,618 @@ curl -X DELETE http://localhost:8000/api/v1/users/10 \
 - Roles must exist in the system before assignment
 - Search functionality searches across name, email, and username fields
 
+## Role Management Endpoints
+
+All role management endpoints require authentication. Include the Bearer token in the Authorization header.
+
+### 1. Get All Roles
+
+**Endpoint:** `GET /api/v1/roles`
+
+**Description:** Retrieve a paginated list of all roles with their permissions and user counts
+
+**Request Headers:**
+```
+Authorization: Bearer {token}
+Accept: application/json
+```
+
+**Query Parameters:**
+- `per_page` (optional): Number of items per page (default: 15)
+- `search` (optional): Search by role name
+
+**Example Request:**
+```bash
+curl -X GET "http://localhost:8000/api/v1/roles?per_page=10&search=admin" \
+  -H "Authorization: Bearer {token}" \
+  -H "Accept: application/json"
+```
+
+**Success Response (200):**
+```json
+{
+  "success": true,
+  "data": {
+    "roles": [
+      {
+        "id": 1,
+        "name": "Super Admin",
+        "guard_name": "web",
+        "permissions": ["view-users", "create-users", ...],
+        "permissions_count": 28,
+        "users_count": 2,
+        "created_at": "2025-11-01T12:17:22.000000Z",
+        "updated_at": "2025-11-01T12:17:22.000000Z"
+      }
+    ],
+    "pagination": {
+      "current_page": 1,
+      "last_page": 1,
+      "per_page": 10,
+      "total": 4
+    }
+  }
+}
+```
+
+---
+
+### 2. Get Single Role
+
+**Endpoint:** `GET /api/v1/roles/{id}`
+
+**Description:** Retrieve detailed information about a specific role
+
+**Request Headers:**
+```
+Authorization: Bearer {token}
+Accept: application/json
+```
+
+**Example Request:**
+```bash
+curl -X GET http://localhost:8000/api/v1/roles/1 \
+  -H "Authorization: Bearer {token}" \
+  -H "Accept: application/json"
+```
+
+**Success Response (200):**
+```json
+{
+  "success": true,
+  "data": {
+    "role": {
+      "id": 1,
+      "name": "Super Admin",
+      "guard_name": "web",
+      "permissions": ["view-users", "create-users", ...],
+      "permissions_count": 28,
+      "users_count": 2,
+      "created_at": "2025-11-01T12:17:22.000000Z",
+      "updated_at": "2025-11-01T12:17:22.000000Z"
+    }
+  }
+}
+```
+
+**Error Response - Not Found (404):**
+```json
+{
+  "success": false,
+  "message": "Role not found"
+}
+```
+
+---
+
+### 3. Create Role
+
+**Endpoint:** `POST /api/v1/roles`
+
+**Description:** Create a new role with optional permission assignment
+
+**Request Headers:**
+```
+Authorization: Bearer {token}
+Content-Type: application/json
+Accept: application/json
+```
+
+**Request Body:**
+```json
+{
+  "name": "Manager",
+  "permissions": ["view-users", "view-residents", "view-reports"]
+}
+```
+
+**Field Requirements:**
+- `name`: required, string, unique, max 255 characters
+- `permissions`: optional, array of existing permission names
+
+**Example Request:**
+```bash
+curl -X POST http://localhost:8000/api/v1/roles \
+  -H "Authorization: Bearer {token}" \
+  -H "Content-Type: application/json" \
+  -H "Accept: application/json" \
+  -d '{
+    "name": "Manager",
+    "permissions": ["view-users", "view-residents"]
+  }'
+```
+
+**Success Response (201):**
+```json
+{
+  "success": true,
+  "message": "Role created successfully",
+  "data": {
+    "role": {
+      "id": 5,
+      "name": "Manager",
+      "guard_name": "web",
+      "permissions": ["view-users", "view-residents"],
+      "permissions_count": 2,
+      "users_count": 0,
+      "created_at": "2025-11-01T12:30:00.000000Z"
+    }
+  }
+}
+```
+
+**Error Response - Validation Failed (422):**
+```json
+{
+  "success": false,
+  "message": "Validation failed",
+  "errors": {
+    "name": ["The name has already been taken."]
+  }
+}
+```
+
+---
+
+### 4. Update Role
+
+**Endpoint:** `PUT /api/v1/roles/{id}` or `PATCH /api/v1/roles/{id}`
+
+**Description:** Update an existing role's name and/or permissions
+
+**Request Headers:**
+```
+Authorization: Bearer {token}
+Content-Type: application/json
+Accept: application/json
+```
+
+**Request Body (all fields optional):**
+```json
+{
+  "name": "Manager Updated",
+  "permissions": ["view-users", "create-users", "view-residents"]
+}
+```
+
+**Field Requirements:**
+- `name`: optional, string, unique, max 255 characters
+- `permissions`: optional, array of existing permission names
+
+**Example Request:**
+```bash
+curl -X PUT http://localhost:8000/api/v1/roles/5 \
+  -H "Authorization: Bearer {token}" \
+  -H "Content-Type: application/json" \
+  -H "Accept: application/json" \
+  -d '{
+    "name": "Manager Updated",
+    "permissions": ["view-users", "create-users"]
+  }'
+```
+
+**Success Response (200):**
+```json
+{
+  "success": true,
+  "message": "Role updated successfully",
+  "data": {
+    "role": {
+      "id": 5,
+      "name": "Manager Updated",
+      "guard_name": "web",
+      "permissions": ["view-users", "create-users"],
+      "permissions_count": 2,
+      "users_count": 0,
+      "updated_at": "2025-11-01T12:35:00.000000Z"
+    }
+  }
+}
+```
+
+**Error Response - Not Found (404):**
+```json
+{
+  "success": false,
+  "message": "Role not found"
+}
+```
+
+---
+
+### 5. Delete Role
+
+**Endpoint:** `DELETE /api/v1/roles/{id}`
+
+**Description:** Delete a role (only if no users are assigned to it)
+
+**Request Headers:**
+```
+Authorization: Bearer {token}
+Accept: application/json
+```
+
+**Example Request:**
+```bash
+curl -X DELETE http://localhost:8000/api/v1/roles/5 \
+  -H "Authorization: Bearer {token}" \
+  -H "Accept: application/json"
+```
+
+**Success Response (200):**
+```json
+{
+  "success": true,
+  "message": "Role deleted successfully"
+}
+```
+
+**Error Response - Role Has Users (403):**
+```json
+{
+  "success": false,
+  "message": "Cannot delete role. It is assigned to 5 user(s)."
+}
+```
+
+**Error Response - Not Found (404):**
+```json
+{
+  "success": false,
+  "message": "Role not found"
+}
+```
+
+---
+
+### 6. Assign Permissions to Role
+
+**Endpoint:** `POST /api/v1/roles/{id}/permissions`
+
+**Description:** Sync permissions for a role (replaces all current permissions)
+
+**Request Headers:**
+```
+Authorization: Bearer {token}
+Content-Type: application/json
+Accept: application/json
+```
+
+**Request Body:**
+```json
+{
+  "permissions": ["view-users", "create-users", "edit-users"]
+}
+```
+
+**Field Requirements:**
+- `permissions`: required, array of existing permission names
+
+**Example Request:**
+```bash
+curl -X POST http://localhost:8000/api/v1/roles/2/permissions \
+  -H "Authorization: Bearer {token}" \
+  -H "Content-Type: application/json" \
+  -H "Accept: application/json" \
+  -d '{
+    "permissions": ["view-users", "create-users"]
+  }'
+```
+
+**Success Response (200):**
+```json
+{
+  "success": true,
+  "message": "Permissions assigned successfully",
+  "data": {
+    "role": {
+      "id": 2,
+      "name": "Admin",
+      "permissions": ["view-users", "create-users"],
+      "permissions_count": 2
+    }
+  }
+}
+```
+
+---
+
+## Permission Management Endpoints
+
+### 1. Get All Permissions
+
+**Endpoint:** `GET /api/v1/permissions`
+
+**Description:** Retrieve a paginated list of all permissions
+
+**Request Headers:**
+```
+Authorization: Bearer {token}
+Accept: application/json
+```
+
+**Query Parameters:**
+- `per_page` (optional): Number of items per page (default: 100)
+- `search` (optional): Search by permission name
+- `grouped` (optional): Set to `true` to get permissions grouped by category
+
+**Example Request (Paginated):**
+```bash
+curl -X GET "http://localhost:8000/api/v1/permissions?per_page=50" \
+  -H "Authorization: Bearer {token}" \
+  -H "Accept: application/json"
+```
+
+**Example Request (Grouped):**
+```bash
+curl -X GET "http://localhost:8000/api/v1/permissions?grouped=true" \
+  -H "Authorization: Bearer {token}" \
+  -H "Accept: application/json"
+```
+
+**Success Response - Paginated (200):**
+```json
+{
+  "success": true,
+  "data": {
+    "permissions": [
+      {
+        "id": 1,
+        "name": "view-letter-requests",
+        "guard_name": "web",
+        "created_at": "2025-11-01T12:17:22.000000Z",
+        "updated_at": "2025-11-01T12:17:22.000000Z"
+      }
+    ],
+    "pagination": {
+      "current_page": 1,
+      "last_page": 1,
+      "per_page": 100,
+      "total": 28
+    }
+  }
+}
+```
+
+**Success Response - Grouped (200):**
+```json
+{
+  "success": true,
+  "data": {
+    "permissions": {
+      "Letter Requests": [
+        {
+          "id": 1,
+          "name": "view-letter-requests",
+          "guard_name": "web",
+          "created_at": "2025-11-01T12:17:22.000000Z"
+        }
+      ],
+      "Users": [
+        {
+          "id": 8,
+          "name": "view-users",
+          "guard_name": "web",
+          "created_at": "2025-11-01T12:17:22.000000Z"
+        }
+      ]
+    },
+    "total": 28
+  }
+}
+```
+
+---
+
+### 2. Get All Permissions (Simple List)
+
+**Endpoint:** `GET /api/v1/permissions/all`
+
+**Description:** Get all permission names in a simple array format
+
+**Request Headers:**
+```
+Authorization: Bearer {token}
+Accept: application/json
+```
+
+**Example Request:**
+```bash
+curl -X GET http://localhost:8000/api/v1/permissions/all \
+  -H "Authorization: Bearer {token}" \
+  -H "Accept: application/json"
+```
+
+**Success Response (200):**
+```json
+{
+  "success": true,
+  "data": {
+    "permissions": [
+      "view-letter-requests",
+      "create-letter-requests",
+      "edit-letter-requests",
+      "delete-letter-requests",
+      "view-users",
+      "create-users"
+    ],
+    "total": 28
+  }
+}
+```
+
+---
+
+### 3. Get Single Permission
+
+**Endpoint:** `GET /api/v1/permissions/{id}`
+
+**Description:** Retrieve detailed information about a specific permission
+
+**Request Headers:**
+```
+Authorization: Bearer {token}
+Accept: application/json
+```
+
+**Example Request:**
+```bash
+curl -X GET http://localhost:8000/api/v1/permissions/1 \
+  -H "Authorization: Bearer {token}" \
+  -H "Accept: application/json"
+```
+
+**Success Response (200):**
+```json
+{
+  "success": true,
+  "data": {
+    "permission": {
+      "id": 1,
+      "name": "view-letter-requests",
+      "guard_name": "web",
+      "created_at": "2025-11-01T12:17:22.000000Z",
+      "updated_at": "2025-11-01T12:17:22.000000Z"
+    }
+  }
+}
+```
+
+**Error Response - Not Found (404):**
+```json
+{
+  "success": false,
+  "message": "Permission not found"
+}
+```
+
+---
+
+## Testing Examples for Roles & Permissions
+
+### Complete Role Management Flow:
+
+```bash
+# 1. Login
+TOKEN=$(curl -s -X POST http://localhost:8000/api/v1/login \
+  -H "Content-Type: application/json" \
+  -d '{"email":"superadmin@example.com","password":"password"}' \
+  | jq -r '.data.token')
+
+# 2. Get all permissions
+curl -X GET http://localhost:8000/api/v1/permissions/all \
+  -H "Authorization: Bearer $TOKEN"
+
+# 3. Create a new role
+curl -X POST http://localhost:8000/api/v1/roles \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Department Manager",
+    "permissions": ["view-users", "view-residents", "view-reports"]
+  }'
+
+# 4. List all roles
+curl -X GET "http://localhost:8000/api/v1/roles" \
+  -H "Authorization: Bearer $TOKEN"
+
+# 5. Update role permissions
+curl -X POST http://localhost:8000/api/v1/roles/5/permissions \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "permissions": ["view-users", "create-users", "view-residents"]
+  }'
+
+# 6. Update role name
+curl -X PUT http://localhost:8000/api/v1/roles/5 \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Senior Manager"
+  }'
+
+# 7. Delete role
+curl -X DELETE http://localhost:8000/api/v1/roles/5 \
+  -H "Authorization: Bearer $TOKEN"
+```
+
+---
+
+## Available Permissions
+
+The system comes with the following predefined permissions grouped by category:
+
+### Letter Requests
+- `view-letter-requests`
+- `create-letter-requests`
+- `edit-letter-requests`
+- `delete-letter-requests`
+- `approve-letter-requests`
+- `reject-letter-requests`
+- `print-letter-requests`
+
+### Users
+- `view-users`
+- `create-users`
+- `edit-users`
+- `delete-users`
+
+### Residents
+- `view-residents`
+- `create-residents`
+- `edit-residents`
+- `delete-residents`
+
+### Roles
+- `view-roles`
+- `create-roles`
+- `edit-roles`
+- `delete-roles`
+- `assign-roles`
+
+### Reports & Analytics
+- `view-reports`
+- `generate-reports`
+- `view-analytics`
+- `view-charts`
+
+### Settings
+- `view-settings`
+- `edit-settings`
+
+### Logs
+- `view-logs`
+- `delete-logs`
+
+---
+
+## Notes on Roles & Permissions
+
+- All roles are created with `guard_name: web`
+- Permissions cannot be created or modified via API (they are seeded)
+- Roles can only be deleted if no users are assigned to them
+- When updating permissions on a role, all permissions are replaced (sync operation)
+- Permission names are case-sensitive
+- Guard name must match between roles and permissions
+

@@ -2,6 +2,8 @@
 
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\UserController;
+use App\Http\Controllers\Api\RoleController;
+use App\Http\Controllers\Api\PermissionController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -16,6 +18,14 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // User Management
     Route::apiResource('users', UserController::class);
+
+    // Role Management
+    Route::apiResource('roles', RoleController::class);
+    Route::post('roles/{id}/permissions', [RoleController::class, 'assignPermissions']);
+
+    // Permission Management
+    Route::get('permissions/all', [PermissionController::class, 'all']);
+    Route::apiResource('permissions', PermissionController::class)->only(['index', 'show']);
 
     // Legacy route for compatibility
     Route::get('/user', function (Request $request) {
