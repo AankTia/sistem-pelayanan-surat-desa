@@ -1323,3 +1323,429 @@ The system comes with the following predefined permissions grouped by category:
 - Permission names are case-sensitive
 - Guard name must match between roles and permissions
 
+
+## Letter Category Endpoints
+
+### 1. Get All Letter Categories
+
+**Endpoint:** `GET /api/v1/letter-categories`
+
+**Description:** Get paginated list of letter categories with filtering and search
+
+**Request Headers:**
+```
+Authorization: Bearer {your_token_here}
+Accept: application/json
+```
+
+**Query Parameters:**
+- `per_page` (optional, default: 15) - Number of items per page
+- `search` (optional) - Search in name or description
+- `status` (optional) - Filter by status (active/inactive)
+
+**Success Response (200):**
+```json
+{
+  "success": true,
+  "data": {
+    "categories": [
+      {
+        "id": "550e8400-e29b-41d4-a716-446655440000",
+        "name": "Surat Keterangan Kependudukan",
+        "slug": "surat-keterangan-kependudukan",
+        "description": "Surat yang menerangkan status kependudukan warga, seperti domisili, kelahiran, atau pindah tempat tinggal.",
+        "icon": "fa-solid fa-id-card",
+        "order": 1,
+        "status": "active",
+        "templates_count": 5,
+        "created_at": "2025-11-01T10:00:00.000000Z",
+        "updated_at": "2025-11-01T10:00:00.000000Z"
+      }
+    ],
+    "pagination": {
+      "current_page": 1,
+      "last_page": 2,
+      "per_page": 15,
+      "total": 25
+    }
+  }
+}
+```
+
+**Example cURL:**
+```bash
+curl --location 'http://localhost:8000/api/v1/letter-categories?per_page=10&search=kependudukan' \
+--header 'Authorization: Bearer YOUR_TOKEN' \
+--header 'Accept: application/json'
+```
+
+---
+
+### 2. Get All Letter Categories (Simple List)
+
+**Endpoint:** `GET /api/v1/letter-categories/all`
+
+**Description:** Get all active letter categories without pagination (useful for dropdowns)
+
+**Request Headers:**
+```
+Authorization: Bearer {your_token_here}
+Accept: application/json
+```
+
+**Success Response (200):**
+```json
+{
+  "success": true,
+  "data": {
+    "categories": [
+      {
+        "id": "550e8400-e29b-41d4-a716-446655440000",
+        "name": "Surat Keterangan Kependudukan",
+        "slug": "surat-keterangan-kependudukan",
+        "icon": "fa-solid fa-id-card"
+      }
+    ],
+    "total": 8
+  }
+}
+```
+
+---
+
+### 3. Get Single Letter Category
+
+**Endpoint:** `GET /api/v1/letter-categories/{id}`
+
+**Description:** Get details of a specific letter category by ID
+
+**Request Headers:**
+```
+Authorization: Bearer {your_token_here}
+Accept: application/json
+```
+
+**Success Response (200):**
+```json
+{
+  "success": true,
+  "data": {
+    "category": {
+      "id": "550e8400-e29b-41d4-a716-446655440000",
+      "name": "Surat Keterangan Kependudukan",
+      "slug": "surat-keterangan-kependudukan",
+      "description": "Surat yang menerangkan status kependudukan warga.",
+      "icon": "fa-solid fa-id-card",
+      "order": 1,
+      "status": "active",
+      "templates_count": 5,
+      "created_at": "2025-11-01T10:00:00.000000Z",
+      "updated_at": "2025-11-01T10:00:00.000000Z"
+    }
+  }
+}
+```
+
+**Error Response - Not Found (404):**
+```json
+{
+  "success": false,
+  "message": "Letter category not found"
+}
+```
+
+---
+
+### 4. Create Letter Category
+
+**Endpoint:** `POST /api/v1/letter-categories`
+
+**Description:** Create a new letter category
+
+**Request Headers:**
+```
+Authorization: Bearer {your_token_here}
+Content-Type: application/json
+Accept: application/json
+```
+
+**Request Body:**
+```json
+{
+  "name": "Surat Keterangan Usaha",
+  "description": "Surat keterangan untuk keperluan usaha dan ekonomi",
+  "icon": "fa-solid fa-briefcase",
+  "order": 9,
+  "status": "active"
+}
+```
+
+**Field Descriptions:**
+- `name` (required, string, max:255) - Category name (must be unique)
+- `description` (optional, string, max:1000) - Category description
+- `icon` (optional, string, max:255) - FontAwesome icon class
+- `order` (optional, integer, min:1) - Display order (auto-generated if not provided)
+- `status` (required, enum) - Either "active" or "inactive"
+
+**Success Response (201):**
+```json
+{
+  "success": true,
+  "message": "Letter category created successfully",
+  "data": {
+    "category": {
+      "id": "650e8400-e29b-41d4-a716-446655440001",
+      "name": "Surat Keterangan Usaha",
+      "slug": "surat-keterangan-usaha",
+      "description": "Surat keterangan untuk keperluan usaha dan ekonomi",
+      "icon": "fa-solid fa-briefcase",
+      "order": 9,
+      "status": "active",
+      "templates_count": 0,
+      "created_at": "2025-11-01T12:00:00.000000Z"
+    }
+  }
+}
+```
+
+**Error Response - Validation Failed (422):**
+```json
+{
+  "success": false,
+  "message": "Validation failed",
+  "errors": {
+    "name": ["The name field is required."],
+    "status": ["The status field must be either active or inactive."]
+  }
+}
+```
+
+---
+
+### 5. Update Letter Category
+
+**Endpoint:** `PUT /api/v1/letter-categories/{id}`
+
+**Description:** Update an existing letter category
+
+**Request Headers:**
+```
+Authorization: Bearer {your_token_here}
+Content-Type: application/json
+Accept: application/json
+```
+
+**Request Body:**
+```json
+{
+  "name": "Surat Keterangan Usaha Updated",
+  "description": "Updated description",
+  "icon": "fa-solid fa-store",
+  "order": 10,
+  "status": "inactive"
+}
+```
+
+**Note:** All fields are optional. Only include fields you want to update.
+
+**Success Response (200):**
+```json
+{
+  "success": true,
+  "message": "Letter category updated successfully",
+  "data": {
+    "category": {
+      "id": "650e8400-e29b-41d4-a716-446655440001",
+      "name": "Surat Keterangan Usaha Updated",
+      "slug": "surat-keterangan-usaha-updated",
+      "description": "Updated description",
+      "icon": "fa-solid fa-store",
+      "order": 10,
+      "status": "inactive",
+      "templates_count": 2,
+      "updated_at": "2025-11-01T13:00:00.000000Z"
+    }
+  }
+}
+```
+
+**Error Response - Not Found (404):**
+```json
+{
+  "success": false,
+  "message": "Letter category not found"
+}
+```
+
+---
+
+### 6. Delete Letter Category
+
+**Endpoint:** `DELETE /api/v1/letter-categories/{id}`
+
+**Description:** Delete a letter category (only if no templates are associated)
+
+**Request Headers:**
+```
+Authorization: Bearer {your_token_here}
+Accept: application/json
+```
+
+**Success Response (200):**
+```json
+{
+  "success": true,
+  "message": "Letter category deleted successfully"
+}
+```
+
+**Error Response - Has Templates (403):**
+```json
+{
+  "success": false,
+  "message": "Cannot delete category. It has 5 associated template(s)."
+}
+```
+
+**Error Response - Not Found (404):**
+```json
+{
+  "success": false,
+  "message": "Letter category not found"
+}
+```
+
+---
+
+### 7. Reorder Letter Categories
+
+**Endpoint:** `POST /api/v1/letter-categories/reorder`
+
+**Description:** Batch update the order of multiple categories
+
+**Request Headers:**
+```
+Authorization: Bearer {your_token_here}
+Content-Type: application/json
+Accept: application/json
+```
+
+**Request Body:**
+```json
+{
+  "categories": [
+    {
+      "id": "550e8400-e29b-41d4-a716-446655440000",
+      "order": 1
+    },
+    {
+      "id": "650e8400-e29b-41d4-a716-446655440001",
+      "order": 2
+    },
+    {
+      "id": "750e8400-e29b-41d4-a716-446655440002",
+      "order": 3
+    }
+  ]
+}
+```
+
+**Success Response (200):**
+```json
+{
+  "success": true,
+  "message": "Categories reordered successfully"
+}
+```
+
+**Error Response - Validation Failed (422):**
+```json
+{
+  "success": false,
+  "message": "Validation failed",
+  "errors": {
+    "categories": ["The categories field is required."],
+    "categories.0.id": ["The selected categories.0.id is invalid."]
+  }
+}
+```
+
+---
+
+## Letter Category Testing Examples
+
+### Complete CRUD Flow:
+
+```bash
+# 1. Login and get token
+TOKEN=$(curl -s -X POST http://localhost:8000/api/v1/login \
+  -H "Content-Type: application/json" \
+  -d '{"email":"superadmin@example.com","password":"password"}' \
+  | jq -r '.data.token')
+
+# 2. Get all categories (paginated)
+curl -X GET "http://localhost:8000/api/v1/letter-categories?per_page=10" \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Accept: application/json"
+
+# 3. Get all categories (simple list for dropdown)
+curl -X GET "http://localhost:8000/api/v1/letter-categories/all" \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Accept: application/json"
+
+# 4. Create new category
+curl -X POST http://localhost:8000/api/v1/letter-categories \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Surat Keterangan Usaha",
+    "description": "Surat untuk keperluan usaha",
+    "icon": "fa-solid fa-briefcase",
+    "status": "active"
+  }'
+
+# 5. Get single category
+curl -X GET http://localhost:8000/api/v1/letter-categories/550e8400-e29b-41d4-a716-446655440000 \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Accept: application/json"
+
+# 6. Update category
+curl -X PUT http://localhost:8000/api/v1/letter-categories/550e8400-e29b-41d4-a716-446655440000 \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Surat Keterangan Usaha Updated",
+    "status": "inactive"
+  }'
+
+# 7. Reorder categories
+curl -X POST http://localhost:8000/api/v1/letter-categories/reorder \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "categories": [
+      {"id": "550e8400-e29b-41d4-a716-446655440000", "order": 2},
+      {"id": "650e8400-e29b-41d4-a716-446655440001", "order": 1}
+    ]
+  }'
+
+# 8. Delete category
+curl -X DELETE http://localhost:8000/api/v1/letter-categories/550e8400-e29b-41d4-a716-446655440000 \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Accept: application/json"
+```
+
+---
+
+## Notes on Letter Categories
+
+- Category IDs are UUIDs, not auto-incrementing integers
+- Slugs are automatically generated from the category name
+- Slugs are updated automatically when the name changes
+- Categories use soft deletes (can be recovered)
+- Categories can only be deleted if they have no associated letter templates
+- The `order` field determines display order (lower numbers appear first)
+- If `order` is not provided when creating, it's automatically set to next available number
+- The `templates_count` field shows how many letter templates use this category
+- Only active categories are returned by the `/all` endpoint
+

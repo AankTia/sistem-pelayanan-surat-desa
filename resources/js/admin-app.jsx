@@ -147,6 +147,43 @@ const permissionAPI = {
     },
 };
 
+const letterCategoryAPI = {
+    getAll: async (params = {}) => {
+        const response = await api.get('/letter-categories', { params });
+        return response.data;
+    },
+
+    getAllSimple: async () => {
+        const response = await api.get('/letter-categories/all');
+        return response.data;
+    },
+
+    getById: async (id) => {
+        const response = await api.get(`/letter-categories/${id}`);
+        return response.data;
+    },
+
+    create: async (categoryData) => {
+        const response = await api.post('/letter-categories', categoryData);
+        return response.data;
+    },
+
+    update: async (id, categoryData) => {
+        const response = await api.put(`/letter-categories/${id}`, categoryData);
+        return response.data;
+    },
+
+    delete: async (id) => {
+        const response = await api.delete(`/letter-categories/${id}`);
+        return response.data;
+    },
+
+    reorder: async (categories) => {
+        const response = await api.post('/letter-categories/reorder', { categories });
+        return response.data;
+    },
+};
+
 // ==================== AUTH CONTEXT ====================
 const AuthContext = createContext();
 
