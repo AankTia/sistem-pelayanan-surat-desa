@@ -12,7 +12,9 @@
       "Bash(npm run dev)",
       "Bash(git add:*)",
       "Bash(git commit:*)",
-      "Bash(composer require:*)"
+      "Bash(composer require:*)",
+      "Bash(cat:*)",
+      "Bash(DB_CONNECTION=mysql CACHE_STORE=file php artisan:*)"
     ],
     "deny": [],
     "ask": []
