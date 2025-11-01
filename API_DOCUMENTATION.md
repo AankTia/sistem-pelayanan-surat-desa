@@ -2167,3 +2167,280 @@ curl -X DELETE http://localhost:8000/api/v1/letter-templates/550e8400-e29b-41d4-
 - When a template's category is deleted, the template is also deleted (cascade)
 - Only active categories are returned by the `/all` endpoint
 
+---
+
+## Activity Log Endpoints
+
+### 1. Get All Activity Logs
+
+Get paginated list of activity logs with optional filters.
+
+**Endpoint:** `GET /api/v1/activity-logs`
+
+**Headers:**
+- `Authorization: Bearer {token}`
+- `Accept: application/json`
+
+**Query Parameters:**
+- `per_page` (optional): Number of items per page (default: 15)
+- `page` (optional): Page number (default: 1)
+- `search` (optional): Search by description, log name, or event
+- `log_name` (optional): Filter by log name
+- `event` (optional): Filter by event (e.g., created, updated, deleted)
+- `causer_id` (optional): Filter by user ID who caused the action
+- `subject_type` (optional): Filter by subject model type
+- `date_from` (optional): Filter from date (YYYY-MM-DD)
+- `date_to` (optional): Filter to date (YYYY-MM-DD)
+
+**Success Response (200 OK):**
+```json
+{
+  "success": true,
+  "data": {
+    "activities": [
+      {
+        "id": 1,
+        "log_name": "default",
+        "description": "User created a new letter category",
+        "event": "created",
+        "subject_type": "App\\Models\\LetterCategory",
+        "subject_id": "550e8400-e29b-41d4-a716-446655440000",
+        "subject": {
+          "type": "App\\Models\\LetterCategory",
+          "id": "550e8400-e29b-41d4-a716-446655440000"
+        },
+        "causer_type": "App\\Models\\User",
+        "causer_id": 1,
+        "causer": {
+          "type": "App\\Models\\User",
+          "id": 1,
+          "name": "Super Admin"
+        },
+        "properties": {
+          "attributes": {
+            "name": "Surat Keterangan",
+            "status": "active"
+          }
+        },
+        "batch_uuid": null,
+        "created_at": "2025-01-15T08:30:00.000000Z"
+      }
+    ],
+    "pagination": {
+      "current_page": 1,
+      "last_page": 10,
+      "per_page": 15,
+      "total": 150
+    }
+  }
+}
+```
+
+### 2. Get Single Activity Log
+
+Get details of a specific activity log.
+
+**Endpoint:** `GET /api/v1/activity-logs/{id}`
+
+**Headers:**
+- `Authorization: Bearer {token}`
+- `Accept: application/json`
+
+**URL Parameters:**
+- `id`: Activity log ID
+
+**Success Response (200 OK):**
+```json
+{
+  "success": true,
+  "data": {
+    "activity": {
+      "id": 1,
+      "log_name": "default",
+      "description": "User created a new letter category",
+      "event": "created",
+      "subject_type": "App\\Models\\LetterCategory",
+      "subject_id": "550e8400-e29b-41d4-a716-446655440000",
+      "subject": {
+        "type": "App\\Models\\LetterCategory",
+        "id": "550e8400-e29b-41d4-a716-446655440000"
+      },
+      "causer_type": "App\\Models\\User",
+      "causer_id": 1,
+      "causer": {
+        "type": "App\\Models\\User",
+        "id": 1,
+        "name": "Super Admin"
+      },
+      "properties": {
+        "attributes": {
+          "name": "Surat Keterangan",
+          "status": "active"
+        }
+      },
+      "batch_uuid": null,
+      "created_at": "2025-01-15T08:30:00.000000Z"
+    }
+  }
+}
+```
+
+**Error Response (404 Not Found):**
+```json
+{
+  "success": false,
+  "message": "Activity log not found"
+}
+```
+
+### 3. Get Log Names
+
+Get list of unique log names for filtering.
+
+**Endpoint:** `GET /api/v1/activity-logs/log-names`
+
+**Headers:**
+- `Authorization: Bearer {token}`
+- `Accept: application/json`
+
+**Success Response (200 OK):**
+```json
+{
+  "success": true,
+  "data": {
+    "log_names": [
+      "default",
+      "user",
+      "letter_category",
+      "letter_template"
+    ]
+  }
+}
+```
+
+### 4. Get Events
+
+Get list of unique events for filtering.
+
+**Endpoint:** `GET /api/v1/activity-logs/events`
+
+**Headers:**
+- `Authorization: Bearer {token}`
+- `Accept: application/json`
+
+**Success Response (200 OK):**
+```json
+{
+  "success": true,
+  "data": {
+    "events": [
+      "created",
+      "updated",
+      "deleted",
+      "viewed"
+    ]
+  }
+}
+```
+
+### 5. Cleanup Old Logs
+
+Delete activity logs older than specified number of days.
+
+**Endpoint:** `POST /api/v1/activity-logs/cleanup`
+
+**Headers:**
+- `Authorization: Bearer {token}`
+- `Content-Type: application/json`
+- `Accept: application/json`
+
+**Request Body:**
+```json
+{
+  "days": 30
+}
+```
+
+**Success Response (200 OK):**
+```json
+{
+  "success": true,
+  "message": "Deleted 245 activity log(s) older than 30 days",
+  "data": {
+    "deleted_count": 245
+  }
+}
+```
+
+---
+
+### Activity Log cURL Examples
+
+```bash
+# Set your token
+TOKEN="your_auth_token_here"
+
+# 1. Get all activity logs (paginated)
+curl -X GET "http://localhost:8000/api/v1/activity-logs?per_page=15&page=1" \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Accept: application/json"
+
+# 2. Get activity logs filtered by event
+curl -X GET "http://localhost:8000/api/v1/activity-logs?event=created" \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Accept: application/json"
+
+# 3. Get activity logs filtered by date range
+curl -X GET "http://localhost:8000/api/v1/activity-logs?date_from=2025-01-01&date_to=2025-01-31" \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Accept: application/json"
+
+# 4. Get activity logs filtered by log name
+curl -X GET "http://localhost:8000/api/v1/activity-logs?log_name=user" \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Accept: application/json"
+
+# 5. Search activity logs
+curl -X GET "http://localhost:8000/api/v1/activity-logs?search=created" \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Accept: application/json"
+
+# 6. Get single activity log
+curl -X GET http://localhost:8000/api/v1/activity-logs/1 \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Accept: application/json"
+
+# 7. Get unique log names
+curl -X GET http://localhost:8000/api/v1/activity-logs/log-names \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Accept: application/json"
+
+# 8. Get unique events
+curl -X GET http://localhost:8000/api/v1/activity-logs/events \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Accept: application/json"
+
+# 9. Cleanup logs older than 30 days
+curl -X POST http://localhost:8000/api/v1/activity-logs/cleanup \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"days": 30}'
+```
+
+---
+
+## Notes on Activity Logs
+
+- Activity logs use auto-incrementing integer IDs (not UUIDs)
+- Logs are automatically created by the Spatie Activity Log package
+- The `log_name` field categorizes logs (default: "default")
+- The `event` field describes what happened (created, updated, deleted, etc.)
+- The `causer` is the user who performed the action (can be null for system actions)
+- The `subject` is the model that was affected
+- The `properties` field stores additional data about the activity (attributes, old values, etc.)
+- Logs are read-only through the API (cannot be manually created or updated)
+- Use the cleanup endpoint to delete old logs and manage database size
+- Filter by multiple parameters to narrow down search results
+- Timestamps are stored in UTC and include milliseconds
+- The system uses Laravel's polymorphic relationships for causer and subject
+
