@@ -184,6 +184,38 @@ const letterCategoryAPI = {
     },
 };
 
+const letterTemplateAPI = {
+    getAll: async (params = {}) => {
+        const response = await api.get('/letter-templates', { params });
+        return response.data;
+    },
+
+    getAllSimple: async (params = {}) => {
+        const response = await api.get('/letter-templates/all', { params });
+        return response.data;
+    },
+
+    getById: async (id) => {
+        const response = await api.get(`/letter-templates/${id}`);
+        return response.data;
+    },
+
+    create: async (templateData) => {
+        const response = await api.post('/letter-templates', templateData);
+        return response.data;
+    },
+
+    update: async (id, templateData) => {
+        const response = await api.put(`/letter-templates/${id}`, templateData);
+        return response.data;
+    },
+
+    delete: async (id) => {
+        const response = await api.delete(`/letter-templates/${id}`);
+        return response.data;
+    },
+};
+
 // ==================== TOAST NOTIFICATION SYSTEM ====================
 const ToastContext = createContext();
 
@@ -443,7 +475,7 @@ function Sidebar({ isOpen, toggleSidebar }) {
             label: 'Letter Management',
             children: [
                 { path: '/admin/letter-categories', icon: 'fa-folder', label: 'Categories' },
-                // { path: '/admin/letter-templates', icon: 'fa-file-text', label: 'Templates' },
+                { path: '/admin/letter-templates', icon: 'fa-file-text', label: 'Templates' },
             ]
         },
         { path: '/admin/users', icon: 'fa-users-cog', label: 'User Management' },
@@ -2205,6 +2237,780 @@ function LetterCategoryPage() {
     );
 }
 
+function LetterTemplatePage() {
+    const { showToast } = useToast();
+    const [templates, setTemplates] = useState([]);
+    const [categories, setCategories] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
+    const [pagination, setPagination] = useState({
+        current_page: 1,
+        last_page: 1,
+        per_page: 10,
+        total: 0
+    });
+    const [search, setSearch] = useState('');
+    const [statusFilter, setStatusFilter] = useState('');
+    const [categoryFilter, setCategoryFilter] = useState('');
+    const [showModal, setShowModal] = useState(false);
+    const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+    const [selectedTemplate, setSelectedTemplate] = useState(null);
+    const [formData, setFormData] = useState({
+        letter_category_id: '',
+        name: '',
+        code: '',
+        fields: [],
+        template_html: '',
+        signature_type: 'digital',
+        status: 'active'
+    });
+    const [formErrors, setFormErrors] = useState({});
+    const [submitting, setSubmitting] = useState(false);
+
+    const fieldTypes = ['text', 'textarea', 'number', 'date', 'select', 'checkbox', 'radio'];
+
+    const fetchTemplates = async (page = 1, searchQuery = search, status = statusFilter, categoryId = categoryFilter) => {
+        try {
+            setLoading(true);
+            setError(null);
+            const params = {
+                per_page: pagination.per_page,
+                page: page,
+            };
+            if (searchQuery) params.search = searchQuery;
+            if (status) params.status = status;
+            if (categoryId) params.category_id = categoryId;
+
+            const response = await letterTemplateAPI.getAll(params);
+
+            if (response.success) {
+                setTemplates(response.data.templates);
+                setPagination(response.data.pagination);
+            }
+        } catch (err) {
+            const errorMessage = err.response?.data?.message || 'Failed to load templates';
+            setError(errorMessage);
+            showToast(errorMessage, 'error');
+            console.error('Error fetching templates:', err);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const fetchCategories = async () => {
+        try {
+            const response = await letterCategoryAPI.getAllSimple();
+            if (response.success) {
+                setCategories(response.data.categories);
+            }
+        } catch (err) {
+            console.error('Error fetching categories:', err);
+        }
+    };
+
+    React.useEffect(() => {
+        fetchCategories();
+        fetchTemplates();
+    }, []);
+
+    const handleSearch = (e) => {
+        e.preventDefault();
+        fetchTemplates(1, search, statusFilter, categoryFilter);
+    };
+
+    const handleStatusFilter = (status) => {
+        setStatusFilter(status);
+        fetchTemplates(1, search, status, categoryFilter);
+    };
+
+    const handleCategoryFilter = (categoryId) => {
+        setCategoryFilter(categoryId);
+        fetchTemplates(1, search, statusFilter, categoryId);
+    };
+
+    const handleCreateClick = () => {
+        setSelectedTemplate(null);
+        setFormData({
+            letter_category_id: '',
+            name: '',
+            code: '',
+            fields: [],
+            template_html: '',
+            signature_type: 'digital',
+            status: 'active'
+        });
+        setFormErrors({});
+        setShowModal(true);
+    };
+
+    const handleEditClick = (template) => {
+        setSelectedTemplate(template);
+        setFormData({
+            letter_category_id: template.letter_category?.id || '',
+            name: template.name,
+            code: template.code,
+            fields: template.fields || [],
+            template_html: template.template_html || '',
+            signature_type: template.signature_type,
+            status: template.status
+        });
+        setFormErrors({});
+        setShowModal(true);
+    };
+
+    const handleDeleteClick = (template) => {
+        setSelectedTemplate(template);
+        setShowDeleteConfirm(true);
+    };
+
+    const handleFormChange = (e) => {
+        const { name, value } = e.target;
+        setFormData(prev => ({
+            ...prev,
+            [name]: value
+        }));
+        if (formErrors[name]) {
+            setFormErrors(prev => ({
+                ...prev,
+                [name]: null
+            }));
+        }
+    };
+
+    const handleAddField = () => {
+        setFormData(prev => ({
+            ...prev,
+            fields: [...prev.fields, {
+                name: '',
+                label: '',
+                type: 'text',
+                placeholder: '',
+                required: false,
+                options: []
+            }]
+        }));
+    };
+
+    const handleRemoveField = (index) => {
+        setFormData(prev => ({
+            ...prev,
+            fields: prev.fields.filter((_, i) => i !== index)
+        }));
+    };
+
+    const handleFieldChange = (index, field, value) => {
+        setFormData(prev => ({
+            ...prev,
+            fields: prev.fields.map((f, i) => i === index ? { ...f, [field]: value } : f)
+        }));
+    };
+
+    const handleFieldOptionChange = (fieldIndex, optionIndex, value) => {
+        setFormData(prev => ({
+            ...prev,
+            fields: prev.fields.map((f, i) => {
+                if (i === fieldIndex) {
+                    const options = [...(f.options || [])];
+                    options[optionIndex] = value;
+                    return { ...f, options };
+                }
+                return f;
+            })
+        }));
+    };
+
+    const handleAddFieldOption = (fieldIndex) => {
+        setFormData(prev => ({
+            ...prev,
+            fields: prev.fields.map((f, i) => {
+                if (i === fieldIndex) {
+                    return { ...f, options: [...(f.options || []), ''] };
+                }
+                return f;
+            })
+        }));
+    };
+
+    const handleRemoveFieldOption = (fieldIndex, optionIndex) => {
+        setFormData(prev => ({
+            ...prev,
+            fields: prev.fields.map((f, i) => {
+                if (i === fieldIndex) {
+                    return { ...f, options: f.options.filter((_, oi) => oi !== optionIndex) };
+                }
+                return f;
+            })
+        }));
+    };
+
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+        setFormErrors({});
+        setSubmitting(true);
+
+        try {
+            const dataToSubmit = { ...formData };
+
+            if (selectedTemplate) {
+                const response = await letterTemplateAPI.update(selectedTemplate.id, dataToSubmit);
+                if (response.success) {
+                    setShowModal(false);
+                    fetchTemplates(pagination.current_page);
+                    showToast('Template updated successfully!', 'success');
+                }
+            } else {
+                const response = await letterTemplateAPI.create(dataToSubmit);
+                if (response.success) {
+                    setShowModal(false);
+                    fetchTemplates(1);
+                    showToast('Template created successfully!', 'success');
+                }
+            }
+        } catch (err) {
+            if (err.response?.data?.errors) {
+                setFormErrors(err.response.data.errors);
+                showToast('Please fix the validation errors', 'error');
+            } else {
+                const errorMessage = err.response?.data?.message || 'Failed to save template';
+                setError(errorMessage);
+                showToast(errorMessage, 'error');
+            }
+        } finally {
+            setSubmitting(false);
+        }
+    };
+
+    const handleDelete = async () => {
+        setSubmitting(true);
+        try {
+            const response = await letterTemplateAPI.delete(selectedTemplate.id);
+            if (response.success) {
+                setShowDeleteConfirm(false);
+                fetchTemplates(pagination.current_page);
+                showToast('Template deleted successfully!', 'success');
+            }
+        } catch (err) {
+            const errorMessage = err.response?.data?.message || 'Failed to delete template';
+            setError(errorMessage);
+            showToast(errorMessage, 'error');
+            setShowDeleteConfirm(false);
+        } finally {
+            setSubmitting(false);
+        }
+    };
+
+    return (
+        <div className="space-y-6">
+            <div className="bg-white rounded-lg shadow-sm border border-gray-200">
+                <div className="p-6 border-b border-gray-200">
+                    <div className="flex items-center justify-between">
+                        <div>
+                            <h2 className="text-xl font-bold text-gray-800">Letter Templates</h2>
+                            <p className="text-sm text-gray-600 mt-1">Manage letter templates and their form fields</p>
+                        </div>
+                        <button
+                            onClick={handleCreateClick}
+                            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center space-x-2"
+                        >
+                            <i className="fas fa-plus"></i>
+                            <span>Add Template</span>
+                        </button>
+                    </div>
+
+                    {error && (
+                        <div className="mt-4 p-4 bg-red-50 border border-red-200 text-red-700 rounded-lg">
+                            <i className="fas fa-exclamation-circle mr-2"></i>
+                            {error}
+                        </div>
+                    )}
+
+                    <div className="mt-6 flex flex-col space-y-4">
+                        <form onSubmit={handleSearch} className="flex space-x-2">
+                            <input
+                                type="text"
+                                value={search}
+                                onChange={(e) => setSearch(e.target.value)}
+                                placeholder="Search templates..."
+                                className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            />
+                            <button
+                                type="submit"
+                                className="px-6 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700"
+                            >
+                                <i className="fas fa-search"></i>
+                            </button>
+                        </form>
+
+                        <div className="flex flex-wrap gap-2">
+                            <select
+                                value={categoryFilter}
+                                onChange={(e) => handleCategoryFilter(e.target.value)}
+                                className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            >
+                                <option value="">All Categories</option>
+                                {categories.map(cat => (
+                                    <option key={cat.id} value={cat.id}>{cat.name}</option>
+                                ))}
+                            </select>
+
+                            <div className="flex space-x-2">
+                                <button
+                                    onClick={() => handleStatusFilter('')}
+                                    className={`px-4 py-2 rounded-lg ${statusFilter === '' ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-700'}`}
+                                >
+                                    All
+                                </button>
+                                <button
+                                    onClick={() => handleStatusFilter('active')}
+                                    className={`px-4 py-2 rounded-lg ${statusFilter === 'active' ? 'bg-green-600 text-white' : 'bg-gray-200 text-gray-700'}`}
+                                >
+                                    Active
+                                </button>
+                                <button
+                                    onClick={() => handleStatusFilter('inactive')}
+                                    className={`px-4 py-2 rounded-lg ${statusFilter === 'inactive' ? 'bg-gray-600 text-white' : 'bg-gray-200 text-gray-700'}`}
+                                >
+                                    Inactive
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div className="overflow-x-auto">
+                    {loading ? (
+                        <div className="flex justify-center items-center py-12">
+                            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+                        </div>
+                    ) : templates.length === 0 ? (
+                        <div className="text-center py-12">
+                            <i className="fas fa-file-alt text-4xl text-gray-400 mb-4"></i>
+                            <p className="text-gray-500">No templates found</p>
+                        </div>
+                    ) : (
+                        <table className="min-w-full divide-y divide-gray-200">
+                            <thead className="bg-gray-50">
+                                <tr>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Template</th>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Category</th>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Fields</th>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Signature</th>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody className="bg-white divide-y divide-gray-200">
+                                {templates.map((template) => (
+                                    <tr key={template.id} className="hover:bg-gray-50">
+                                        <td className="px-6 py-4">
+                                            <div>
+                                                <div className="text-sm font-medium text-gray-900">{template.name}</div>
+                                                <div className="text-xs text-gray-500">{template.code}</div>
+                                            </div>
+                                        </td>
+                                        <td className="px-6 py-4 whitespace-nowrap">
+                                            {template.letter_category ? (
+                                                <span className="px-2 py-1 text-xs font-medium bg-purple-100 text-purple-800 rounded">
+                                                    {template.letter_category.name}
+                                                </span>
+                                            ) : (
+                                                <span className="text-gray-400 text-xs">No category</span>
+                                            )}
+                                        </td>
+                                        <td className="px-6 py-4 whitespace-nowrap">
+                                            <span className="px-2 py-1 text-xs font-medium bg-blue-100 text-blue-800 rounded">
+                                                {template.fields?.length || 0} fields
+                                            </span>
+                                        </td>
+                                        <td className="px-6 py-4 whitespace-nowrap">
+                                            <span className={`px-2 py-1 text-xs font-medium rounded ${
+                                                template.signature_type === 'digital'
+                                                    ? 'bg-green-100 text-green-800'
+                                                    : 'bg-gray-100 text-gray-800'
+                                            }`}>
+                                                {template.signature_type}
+                                            </span>
+                                        </td>
+                                        <td className="px-6 py-4 whitespace-nowrap">
+                                            <span className={`px-3 py-1 text-xs font-medium rounded-full ${
+                                                template.status === 'active'
+                                                    ? 'bg-green-100 text-green-800'
+                                                    : 'bg-gray-100 text-gray-800'
+                                            }`}>
+                                                {template.status}
+                                            </span>
+                                        </td>
+                                        <td className="px-6 py-4 whitespace-nowrap text-sm">
+                                            <div className="flex items-center space-x-2">
+                                                <button
+                                                    onClick={() => handleEditClick(template)}
+                                                    className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg"
+                                                    title="Edit"
+                                                >
+                                                    <i className="fas fa-edit"></i>
+                                                </button>
+                                                <button
+                                                    onClick={() => handleDeleteClick(template)}
+                                                    className="p-2 text-red-600 hover:bg-red-50 rounded-lg"
+                                                    title="Delete"
+                                                >
+                                                    <i className="fas fa-trash"></i>
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    )}
+                </div>
+
+                {pagination.last_page > 1 && (
+                    <div className="px-6 py-4 border-t border-gray-200 flex items-center justify-between">
+                        <div className="text-sm text-gray-600">
+                            Showing {(pagination.current_page - 1) * pagination.per_page + 1} to{' '}
+                            {Math.min(pagination.current_page * pagination.per_page, pagination.total)} of{' '}
+                            {pagination.total} templates
+                        </div>
+                        <div className="flex space-x-2">
+                            <button
+                                onClick={() => fetchTemplates(pagination.current_page - 1)}
+                                disabled={pagination.current_page === 1}
+                                className="px-4 py-2 border border-gray-300 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+                            >
+                                Previous
+                            </button>
+                            <button
+                                onClick={() => fetchTemplates(pagination.current_page + 1)}
+                                disabled={pagination.current_page === pagination.last_page}
+                                className="px-4 py-2 border border-gray-300 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+                            >
+                                Next
+                            </button>
+                        </div>
+                    </div>
+                )}
+            </div>
+
+            {/* Create/Edit Modal */}
+            {showModal && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+                    <div className="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+                        <div className="p-6 border-b border-gray-200">
+                            <h3 className="text-lg font-bold text-gray-800">
+                                {selectedTemplate ? 'Edit Template' : 'Create New Template'}
+                            </h3>
+                        </div>
+
+                        <form onSubmit={handleSubmit} className="p-6 space-y-4">
+                            <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                                        Category <span className="text-red-500">*</span>
+                                    </label>
+                                    <select
+                                        name="letter_category_id"
+                                        value={formData.letter_category_id}
+                                        onChange={handleFormChange}
+                                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                        required
+                                    >
+                                        <option value="">Select category...</option>
+                                        {categories.map(cat => (
+                                            <option key={cat.id} value={cat.id}>{cat.name}</option>
+                                        ))}
+                                    </select>
+                                    {formErrors.letter_category_id && (
+                                        <p className="text-red-500 text-sm mt-1">{formErrors.letter_category_id[0]}</p>
+                                    )}
+                                </div>
+
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                                        Template Code <span className="text-red-500">*</span>
+                                    </label>
+                                    <input
+                                        type="text"
+                                        name="code"
+                                        value={formData.code}
+                                        onChange={handleFormChange}
+                                        placeholder="e.g., SKTM-001"
+                                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                        required
+                                    />
+                                    {formErrors.code && (
+                                        <p className="text-red-500 text-sm mt-1">{formErrors.code[0]}</p>
+                                    )}
+                                </div>
+                            </div>
+
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-2">
+                                    Template Name <span className="text-red-500">*</span>
+                                </label>
+                                <input
+                                    type="text"
+                                    name="name"
+                                    value={formData.name}
+                                    onChange={handleFormChange}
+                                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                    required
+                                />
+                                {formErrors.name && (
+                                    <p className="text-red-500 text-sm mt-1">{formErrors.name[0]}</p>
+                                )}
+                            </div>
+
+                            <div>
+                                <div className="flex items-center justify-between mb-2">
+                                    <label className="block text-sm font-medium text-gray-700">
+                                        Form Fields <span className="text-red-500">*</span>
+                                    </label>
+                                    <button
+                                        type="button"
+                                        onClick={handleAddField}
+                                        className="px-3 py-1 text-sm bg-green-600 text-white rounded hover:bg-green-700"
+                                    >
+                                        <i className="fas fa-plus mr-1"></i> Add Field
+                                    </button>
+                                </div>
+
+                                {formData.fields.length === 0 ? (
+                                    <div className="text-center p-4 border-2 border-dashed border-gray-300 rounded-lg text-gray-500">
+                                        No fields added yet. Click "Add Field" to create form fields.
+                                    </div>
+                                ) : (
+                                    <div className="space-y-4 max-h-96 overflow-y-auto border border-gray-300 rounded-lg p-4">
+                                        {formData.fields.map((field, index) => (
+                                            <div key={index} className="p-4 border border-gray-200 rounded-lg bg-gray-50 space-y-3">
+                                                <div className="flex items-center justify-between">
+                                                    <h4 className="text-sm font-medium text-gray-700">Field #{index + 1}</h4>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => handleRemoveField(index)}
+                                                        className="text-red-600 hover:text-red-700"
+                                                    >
+                                                        <i className="fas fa-times"></i>
+                                                    </button>
+                                                </div>
+
+                                                <div className="grid grid-cols-2 gap-3">
+                                                    <div>
+                                                        <label className="block text-xs font-medium text-gray-600 mb-1">Field Name</label>
+                                                        <input
+                                                            type="text"
+                                                            value={field.name}
+                                                            onChange={(e) => handleFieldChange(index, 'name', e.target.value)}
+                                                            placeholder="e.g., applicant_name"
+                                                            className="w-full px-3 py-2 text-sm border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                                            required
+                                                        />
+                                                    </div>
+                                                    <div>
+                                                        <label className="block text-xs font-medium text-gray-600 mb-1">Label</label>
+                                                        <input
+                                                            type="text"
+                                                            value={field.label}
+                                                            onChange={(e) => handleFieldChange(index, 'label', e.target.value)}
+                                                            placeholder="e.g., Applicant Name"
+                                                            className="w-full px-3 py-2 text-sm border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                                            required
+                                                        />
+                                                    </div>
+                                                </div>
+
+                                                <div className="grid grid-cols-3 gap-3">
+                                                    <div>
+                                                        <label className="block text-xs font-medium text-gray-600 mb-1">Type</label>
+                                                        <select
+                                                            value={field.type}
+                                                            onChange={(e) => handleFieldChange(index, 'type', e.target.value)}
+                                                            className="w-full px-3 py-2 text-sm border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                                        >
+                                                            {fieldTypes.map(type => (
+                                                                <option key={type} value={type}>{type}</option>
+                                                            ))}
+                                                        </select>
+                                                    </div>
+                                                    <div>
+                                                        <label className="block text-xs font-medium text-gray-600 mb-1">Placeholder</label>
+                                                        <input
+                                                            type="text"
+                                                            value={field.placeholder}
+                                                            onChange={(e) => handleFieldChange(index, 'placeholder', e.target.value)}
+                                                            className="w-full px-3 py-2 text-sm border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                                        />
+                                                    </div>
+                                                    <div className="flex items-center">
+                                                        <label className="flex items-center space-x-2 cursor-pointer">
+                                                            <input
+                                                                type="checkbox"
+                                                                checked={field.required}
+                                                                onChange={(e) => handleFieldChange(index, 'required', e.target.checked)}
+                                                                className="rounded border-gray-300"
+                                                            />
+                                                            <span className="text-xs font-medium text-gray-600">Required</span>
+                                                        </label>
+                                                    </div>
+                                                </div>
+
+                                                {['select', 'checkbox', 'radio'].includes(field.type) && (
+                                                    <div>
+                                                        <div className="flex items-center justify-between mb-2">
+                                                            <label className="block text-xs font-medium text-gray-600">Options</label>
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => handleAddFieldOption(index)}
+                                                                className="text-xs text-blue-600 hover:text-blue-700"
+                                                            >
+                                                                <i className="fas fa-plus mr-1"></i> Add Option
+                                                            </button>
+                                                        </div>
+                                                        <div className="space-y-2">
+                                                            {(field.options || []).map((option, optIndex) => (
+                                                                <div key={optIndex} className="flex space-x-2">
+                                                                    <input
+                                                                        type="text"
+                                                                        value={option}
+                                                                        onChange={(e) => handleFieldOptionChange(index, optIndex, e.target.value)}
+                                                                        placeholder={`Option ${optIndex + 1}`}
+                                                                        className="flex-1 px-3 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                                                    />
+                                                                    <button
+                                                                        type="button"
+                                                                        onClick={() => handleRemoveFieldOption(index, optIndex)}
+                                                                        className="text-red-600 hover:text-red-700"
+                                                                    >
+                                                                        <i className="fas fa-times"></i>
+                                                                    </button>
+                                                                </div>
+                                                            ))}
+                                                        </div>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                                {formErrors.fields && (
+                                    <p className="text-red-500 text-sm mt-1">{formErrors.fields[0]}</p>
+                                )}
+                            </div>
+
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-2">
+                                    Template HTML <span className="text-red-500">*</span>
+                                </label>
+                                <textarea
+                                    name="template_html"
+                                    value={formData.template_html}
+                                    onChange={handleFormChange}
+                                    rows="6"
+                                    placeholder="Enter the HTML template with placeholders like {{field_name}}"
+                                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono text-sm"
+                                    required
+                                />
+                                {formErrors.template_html && (
+                                    <p className="text-red-500 text-sm mt-1">{formErrors.template_html[0]}</p>
+                                )}
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                                        Signature Type <span className="text-red-500">*</span>
+                                    </label>
+                                    <select
+                                        name="signature_type"
+                                        value={formData.signature_type}
+                                        onChange={handleFormChange}
+                                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                        required
+                                    >
+                                        <option value="digital">Digital</option>
+                                        <option value="manual">Manual</option>
+                                    </select>
+                                    {formErrors.signature_type && (
+                                        <p className="text-red-500 text-sm mt-1">{formErrors.signature_type[0]}</p>
+                                    )}
+                                </div>
+
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                                        Status <span className="text-red-500">*</span>
+                                    </label>
+                                    <select
+                                        name="status"
+                                        value={formData.status}
+                                        onChange={handleFormChange}
+                                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                        required
+                                    >
+                                        <option value="active">Active</option>
+                                        <option value="inactive">Inactive</option>
+                                    </select>
+                                    {formErrors.status && (
+                                        <p className="text-red-500 text-sm mt-1">{formErrors.status[0]}</p>
+                                    )}
+                                </div>
+                            </div>
+
+                            <div className="flex justify-end space-x-3 pt-4">
+                                <button
+                                    type="button"
+                                    onClick={() => setShowModal(false)}
+                                    className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    type="submit"
+                                    disabled={submitting}
+                                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
+                                >
+                                    {submitting ? 'Saving...' : selectedTemplate ? 'Update' : 'Create'}
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
+
+            {/* Delete Confirmation Modal */}
+            {showDeleteConfirm && selectedTemplate && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+                    <div className="bg-white rounded-lg shadow-xl max-w-md w-full">
+                        <div className="p-6">
+                            <div className="flex items-center justify-center w-12 h-12 mx-auto bg-red-100 rounded-full mb-4">
+                                <i className="fas fa-exclamation-triangle text-red-600 text-xl"></i>
+                            </div>
+                            <h3 className="text-lg font-bold text-gray-800 text-center mb-2">Delete Template</h3>
+                            <p className="text-gray-600 text-center mb-6">
+                                Are you sure you want to delete "{selectedTemplate.name}"? This action cannot be undone.
+                            </p>
+                            <div className="flex space-x-3">
+                                <button
+                                    onClick={() => setShowDeleteConfirm(false)}
+                                    className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    onClick={handleDelete}
+                                    disabled={submitting}
+                                    className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                                >
+                                    {submitting ? 'Deleting...' : 'Delete'}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+        </div>
+    );
+}
+
 function AccessManagementPage() {
     const [roles, setRoles] = React.useState([]);
     const [groupedPermissions, setGroupedPermissions] = React.useState({});
@@ -2750,6 +3556,7 @@ function AdminApp() {
                                         <Route path="charts" element={<ChartsPage />} />
                                         <Route path="requests" element={<RequestsPage />} />
                                         <Route path="letter-categories" element={<LetterCategoryPage />} />
+                                        <Route path="letter-templates" element={<LetterTemplatePage />} />
                                         <Route path="users" element={<UsersPage />} />
                                         <Route path="residents" element={<ResidentsPage />} />
                                         <Route path="reports" element={<ReportsPage />} />

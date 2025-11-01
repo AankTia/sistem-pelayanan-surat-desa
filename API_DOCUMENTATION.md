@@ -1747,5 +1747,423 @@ curl -X DELETE http://localhost:8000/api/v1/letter-categories/550e8400-e29b-41d4
 - The `order` field determines display order (lower numbers appear first)
 - If `order` is not provided when creating, it's automatically set to next available number
 - The `templates_count` field shows how many letter templates use this category
+
+---
+
+## Letter Template Endpoints
+
+### 1. Get All Letter Templates
+
+Get paginated list of letter templates with optional filters.
+
+**Endpoint:** `GET /api/v1/letter-templates`
+
+**Headers:**
+- `Authorization: Bearer {token}`
+- `Accept: application/json`
+
+**Query Parameters:**
+- `per_page` (optional): Number of items per page (default: 15)
+- `page` (optional): Page number (default: 1)
+- `search` (optional): Search by template name or code
+- `status` (optional): Filter by status (`active` or `inactive`)
+- `category_id` (optional): Filter by letter category UUID
+
+**Success Response (200 OK):**
+```json
+{
+  "success": true,
+  "data": {
+    "templates": [
+      {
+        "id": "550e8400-e29b-41d4-a716-446655440000",
+        "name": "Surat Keterangan Tidak Mampu",
+        "code": "SKTM-001",
+        "fields": [
+          {
+            "name": "applicant_name",
+            "label": "Nama Pemohon",
+            "type": "text",
+            "placeholder": "Masukkan nama lengkap",
+            "required": true,
+            "options": []
+          },
+          {
+            "name": "purpose",
+            "label": "Tujuan",
+            "type": "select",
+            "placeholder": "",
+            "required": true,
+            "options": ["Pendidikan", "Kesehatan", "Lainnya"]
+          }
+        ],
+        "template_html": "<h1>SURAT KETERANGAN TIDAK MAMPU</h1><p>Yang bertanda tangan di bawah ini menerangkan bahwa:</p><p>Nama: {{applicant_name}}</p><p>Tujuan: {{purpose}}</p>",
+        "signature_type": "digital",
+        "status": "active",
+        "letter_category": {
+          "id": "650e8400-e29b-41d4-a716-446655440001",
+          "name": "Surat Keterangan",
+          "slug": "surat-keterangan"
+        },
+        "created_at": "2025-01-15T08:30:00.000000Z",
+        "updated_at": "2025-01-15T08:30:00.000000Z"
+      }
+    ],
+    "pagination": {
+      "current_page": 1,
+      "last_page": 1,
+      "per_page": 15,
+      "total": 1
+    }
+  }
+}
+```
+
+### 2. Get All Templates (Simple List)
+
+Get all active templates without pagination (for dropdown/select lists).
+
+**Endpoint:** `GET /api/v1/letter-templates/all`
+
+**Headers:**
+- `Authorization: Bearer {token}`
+- `Accept: application/json`
+
+**Query Parameters:**
+- `category_id` (optional): Filter by letter category UUID
+
+**Success Response (200 OK):**
+```json
+{
+  "success": true,
+  "data": {
+    "templates": [
+      {
+        "id": "550e8400-e29b-41d4-a716-446655440000",
+        "name": "Surat Keterangan Tidak Mampu",
+        "code": "SKTM-001",
+        "letter_category_id": "650e8400-e29b-41d4-a716-446655440001"
+      }
+    ],
+    "total": 1
+  }
+}
+```
+
+### 3. Get Single Template
+
+Get details of a specific letter template.
+
+**Endpoint:** `GET /api/v1/letter-templates/{id}`
+
+**Headers:**
+- `Authorization: Bearer {token}`
+- `Accept: application/json`
+
+**URL Parameters:**
+- `id`: Template UUID
+
+**Success Response (200 OK):**
+```json
+{
+  "success": true,
+  "data": {
+    "template": {
+      "id": "550e8400-e29b-41d4-a716-446655440000",
+      "name": "Surat Keterangan Tidak Mampu",
+      "code": "SKTM-001",
+      "fields": [
+        {
+          "name": "applicant_name",
+          "label": "Nama Pemohon",
+          "type": "text",
+          "placeholder": "Masukkan nama lengkap",
+          "required": true,
+          "options": []
+        }
+      ],
+      "template_html": "<h1>SURAT KETERANGAN TIDAK MAMPU</h1><p>Yang bertanda tangan di bawah ini menerangkan bahwa:</p><p>Nama: {{applicant_name}}</p>",
+      "signature_type": "digital",
+      "status": "active",
+      "letter_category": {
+        "id": "650e8400-e29b-41d4-a716-446655440001",
+        "name": "Surat Keterangan",
+        "slug": "surat-keterangan"
+      },
+      "created_at": "2025-01-15T08:30:00.000000Z",
+      "updated_at": "2025-01-15T08:30:00.000000Z"
+    }
+  }
+}
+```
+
+**Error Response (404 Not Found):**
+```json
+{
+  "success": false,
+  "message": "Letter template not found"
+}
+```
+
+### 4. Create Letter Template
+
+Create a new letter template.
+
+**Endpoint:** `POST /api/v1/letter-templates`
+
+**Headers:**
+- `Authorization: Bearer {token}`
+- `Content-Type: application/json`
+- `Accept: application/json`
+
+**Request Body:**
+```json
+{
+  "letter_category_id": "650e8400-e29b-41d4-a716-446655440001",
+  "name": "Surat Keterangan Tidak Mampu",
+  "code": "SKTM-001",
+  "fields": [
+    {
+      "name": "applicant_name",
+      "label": "Nama Pemohon",
+      "type": "text",
+      "placeholder": "Masukkan nama lengkap",
+      "required": true,
+      "options": []
+    },
+    {
+      "name": "purpose",
+      "label": "Tujuan",
+      "type": "select",
+      "placeholder": "",
+      "required": true,
+      "options": ["Pendidikan", "Kesehatan", "Lainnya"]
+    }
+  ],
+  "template_html": "<h1>SURAT KETERANGAN TIDAK MAMPU</h1><p>Yang bertanda tangan di bawah ini menerangkan bahwa:</p><p>Nama: {{applicant_name}}</p><p>Tujuan: {{purpose}}</p>",
+  "signature_type": "digital",
+  "status": "active"
+}
+```
+
+**Field Types:**
+- `text`: Single-line text input
+- `textarea`: Multi-line text input
+- `number`: Numeric input
+- `date`: Date picker
+- `select`: Dropdown selection (requires `options` array)
+- `checkbox`: Multiple choice checkboxes (requires `options` array)
+- `radio`: Single choice radio buttons (requires `options` array)
+
+**Success Response (201 Created):**
+```json
+{
+  "success": true,
+  "message": "Letter template created successfully",
+  "data": {
+    "template": {
+      "id": "550e8400-e29b-41d4-a716-446655440000",
+      "name": "Surat Keterangan Tidak Mampu",
+      "code": "SKTM-001",
+      "fields": [...],
+      "template_html": "...",
+      "signature_type": "digital",
+      "status": "active",
+      "letter_category": {
+        "id": "650e8400-e29b-41d4-a716-446655440001",
+        "name": "Surat Keterangan",
+        "slug": "surat-keterangan"
+      },
+      "created_at": "2025-01-15T08:30:00.000000Z"
+    }
+  }
+}
+```
+
+**Error Response (422 Unprocessable Entity):**
+```json
+{
+  "success": false,
+  "message": "Validation failed",
+  "errors": {
+    "name": ["The name field is required."],
+    "code": ["The code has already been taken."],
+    "fields": ["The fields field is required."],
+    "fields.0.name": ["The fields.0.name field is required."]
+  }
+}
+```
+
+### 5. Update Letter Template
+
+Update an existing letter template.
+
+**Endpoint:** `PUT /api/v1/letter-templates/{id}`
+
+**Headers:**
+- `Authorization: Bearer {token}`
+- `Content-Type: application/json`
+- `Accept: application/json`
+
+**URL Parameters:**
+- `id`: Template UUID
+
+**Request Body:** (all fields optional, only include fields to update)
+```json
+{
+  "name": "Surat Keterangan Tidak Mampu Updated",
+  "status": "inactive",
+  "fields": [
+    {
+      "name": "applicant_name",
+      "label": "Nama Lengkap Pemohon",
+      "type": "text",
+      "placeholder": "Masukkan nama lengkap",
+      "required": true,
+      "options": []
+    }
+  ]
+}
+```
+
+**Success Response (200 OK):**
+```json
+{
+  "success": true,
+  "message": "Letter template updated successfully",
+  "data": {
+    "template": {
+      "id": "550e8400-e29b-41d4-a716-446655440000",
+      "name": "Surat Keterangan Tidak Mampu Updated",
+      "code": "SKTM-001",
+      "fields": [...],
+      "template_html": "...",
+      "signature_type": "digital",
+      "status": "inactive",
+      "letter_category": {...},
+      "updated_at": "2025-01-15T09:00:00.000000Z"
+    }
+  }
+}
+```
+
+**Error Response (404 Not Found):**
+```json
+{
+  "success": false,
+  "message": "Letter template not found"
+}
+```
+
+### 6. Delete Letter Template
+
+Delete a letter template (soft delete).
+
+**Endpoint:** `DELETE /api/v1/letter-templates/{id}`
+
+**Headers:**
+- `Authorization: Bearer {token}`
+- `Accept: application/json`
+
+**URL Parameters:**
+- `id`: Template UUID
+
+**Success Response (200 OK):**
+```json
+{
+  "success": true,
+  "message": "Letter template deleted successfully"
+}
+```
+
+**Error Response (404 Not Found):**
+```json
+{
+  "success": false,
+  "message": "Letter template not found"
+}
+```
+
+---
+
+### Letter Template cURL Examples
+
+```bash
+# Set your token
+TOKEN="your_auth_token_here"
+
+# 1. Get all templates (paginated)
+curl -X GET "http://localhost:8000/api/v1/letter-templates?per_page=10&page=1&status=active" \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Accept: application/json"
+
+# 2. Get all templates by category
+curl -X GET "http://localhost:8000/api/v1/letter-templates?category_id=650e8400-e29b-41d4-a716-446655440001" \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Accept: application/json"
+
+# 3. Get simple list (for dropdowns)
+curl -X GET http://localhost:8000/api/v1/letter-templates/all \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Accept: application/json"
+
+# 4. Create new template
+curl -X POST http://localhost:8000/api/v1/letter-templates \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "letter_category_id": "650e8400-e29b-41d4-a716-446655440001",
+    "name": "Surat Keterangan Tidak Mampu",
+    "code": "SKTM-001",
+    "fields": [
+      {
+        "name": "applicant_name",
+        "label": "Nama Pemohon",
+        "type": "text",
+        "placeholder": "Masukkan nama lengkap",
+        "required": true,
+        "options": []
+      }
+    ],
+    "template_html": "<h1>SURAT KETERANGAN TIDAK MAMPU</h1><p>Nama: {{applicant_name}}</p>",
+    "signature_type": "digital",
+    "status": "active"
+  }'
+
+# 5. Get single template
+curl -X GET http://localhost:8000/api/v1/letter-templates/550e8400-e29b-41d4-a716-446655440000 \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Accept: application/json"
+
+# 6. Update template
+curl -X PUT http://localhost:8000/api/v1/letter-templates/550e8400-e29b-41d4-a716-446655440000 \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Surat Keterangan Tidak Mampu Updated",
+    "status": "inactive"
+  }'
+
+# 7. Delete template
+curl -X DELETE http://localhost:8000/api/v1/letter-templates/550e8400-e29b-41d4-a716-446655440000 \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Accept: application/json"
+```
+
+---
+
+## Notes on Letter Templates
+
+- Template IDs are UUIDs, not auto-incrementing integers
+- The `code` field must be unique across all templates
+- Templates use soft deletes (can be recovered)
+- The `fields` array defines the form structure for letter requests
+- Field names in `fields` array should match placeholders in `template_html` (e.g., `{{applicant_name}}`)
+- Supported field types: text, textarea, number, date, select, checkbox, radio
+- Fields with type select/checkbox/radio require an `options` array
+- The `template_html` supports placeholder syntax: `{{field_name}}`
+- Signature types: `digital` (electronic signature) or `manual` (physical signature)
+- Templates belong to a letter category and include category details in responses
+- When a template's category is deleted, the template is also deleted (cascade)
 - Only active categories are returned by the `/all` endpoint
 
