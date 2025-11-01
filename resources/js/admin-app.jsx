@@ -93,6 +93,60 @@ const userAPI = {
     },
 };
 
+const roleAPI = {
+    getAll: async (params = {}) => {
+        const response = await api.get('/roles', { params });
+        return response.data;
+    },
+
+    getById: async (id) => {
+        const response = await api.get(`/roles/${id}`);
+        return response.data;
+    },
+
+    create: async (roleData) => {
+        const response = await api.post('/roles', roleData);
+        return response.data;
+    },
+
+    update: async (id, roleData) => {
+        const response = await api.put(`/roles/${id}`, roleData);
+        return response.data;
+    },
+
+    delete: async (id) => {
+        const response = await api.delete(`/roles/${id}`);
+        return response.data;
+    },
+
+    assignPermissions: async (id, permissions) => {
+        const response = await api.post(`/roles/${id}/permissions`, { permissions });
+        return response.data;
+    },
+};
+
+const permissionAPI = {
+    getAll: async (params = {}) => {
+        const response = await api.get('/permissions', { params });
+        return response.data;
+    },
+
+    getAllSimple: async () => {
+        const response = await api.get('/permissions/all');
+        return response.data;
+    },
+
+    getGrouped: async () => {
+        const response = await api.get('/permissions', { params: { grouped: true } });
+        return response.data;
+    },
+
+    getById: async (id) => {
+        const response = await api.get(`/permissions/${id}`);
+        return response.data;
+    },
+};
+
 // ==================== AUTH CONTEXT ====================
 const AuthContext = createContext();
 
@@ -1445,57 +1499,411 @@ function ReportsPage() {
 }
 
 function AccessManagementPage() {
+    const [roles, setRoles] = React.useState([]);
+    const [groupedPermissions, setGroupedPermissions] = React.useState({});
+    const [loading, setLoading] = React.useState(true);
+    const [error, setError] = React.useState(null);
+    const [showModal, setShowModal] = React.useState(false);
+    const [showDeleteConfirm, setShowDeleteConfirm] = React.useState(false);
+    const [selectedRole, setSelectedRole] = React.useState(null);
+    const [formData, setFormData] = React.useState({
+        name: '',
+        permissions: []
+    });
+    const [formErrors, setFormErrors] = React.useState({});
+    const [submitting, setSubmitting] = React.useState(false);
+
+    const fetchRoles = async () => {
+        try {
+            setLoading(true);
+            setError(null);
+            const response = await roleAPI.getAll({ per_page: 100 });
+
+            if (response.success) {
+                setRoles(response.data.roles);
+            }
+        } catch (err) {
+            setError(err.response?.data?.message || 'Failed to load roles');
+            console.error('Error fetching roles:', err);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const fetchPermissions = async () => {
+        try {
+            const response = await permissionAPI.getGrouped();
+            if (response.success) {
+                setGroupedPermissions(response.data.permissions);
+            }
+        } catch (err) {
+            console.error('Error fetching permissions:', err);
+        }
+    };
+
+    React.useEffect(() => {
+        fetchRoles();
+        fetchPermissions();
+    }, []);
+
+    const handleCreateRole = () => {
+        setSelectedRole(null);
+        setFormData({
+            name: '',
+            permissions: []
+        });
+        setFormErrors({});
+        setShowModal(true);
+    };
+
+    const handleEditRole = (role) => {
+        setSelectedRole(role);
+        setFormData({
+            name: role.name,
+            permissions: role.permissions || []
+        });
+        setFormErrors({});
+        setShowModal(true);
+    };
+
+    const handleDeleteClick = (role) => {
+        setSelectedRole(role);
+        setShowDeleteConfirm(true);
+    };
+
+    const handleDeleteConfirm = async () => {
+        try {
+            setSubmitting(true);
+            const response = await roleAPI.delete(selectedRole.id);
+
+            if (response.success) {
+                setShowDeleteConfirm(false);
+                setSelectedRole(null);
+                fetchRoles();
+            }
+        } catch (err) {
+            alert(err.response?.data?.message || 'Failed to delete role');
+        } finally {
+            setSubmitting(false);
+        }
+    };
+
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+        setFormErrors({});
+        setSubmitting(true);
+
+        try {
+            let response;
+            if (selectedRole) {
+                response = await roleAPI.update(selectedRole.id, formData);
+            } else {
+                response = await roleAPI.create(formData);
+            }
+
+            if (response.success) {
+                setShowModal(false);
+                setSelectedRole(null);
+                fetchRoles();
+            }
+        } catch (err) {
+            if (err.response?.data?.errors) {
+                setFormErrors(err.response.data.errors);
+            } else {
+                alert(err.response?.data?.message || 'Failed to save role');
+            }
+        } finally {
+            setSubmitting(false);
+        }
+    };
+
+    const handleInputChange = (e) => {
+        const { name, value } = e.target;
+        setFormData(prev => ({ ...prev, [name]: value }));
+        if (formErrors[name]) {
+            setFormErrors(prev => ({ ...prev, [name]: null }));
+        }
+    };
+
+    const handlePermissionChange = (permissionName) => {
+        setFormData(prev => {
+            const permissions = prev.permissions.includes(permissionName)
+                ? prev.permissions.filter(p => p !== permissionName)
+                : [...prev.permissions, permissionName];
+            return { ...prev, permissions };
+        });
+    };
+
+    const toggleCategoryPermissions = (categoryPermissions) => {
+        const categoryPermissionNames = categoryPermissions.map(p => p.name);
+        const allSelected = categoryPermissionNames.every(p => formData.permissions.includes(p));
+
+        setFormData(prev => {
+            if (allSelected) {
+                return {
+                    ...prev,
+                    permissions: prev.permissions.filter(p => !categoryPermissionNames.includes(p))
+                };
+            } else {
+                const newPermissions = [...new Set([...prev.permissions, ...categoryPermissionNames])];
+                return { ...prev, permissions: newPermissions };
+            }
+        });
+    };
+
     return (
         <div className="space-y-6">
-            <h1 className="text-3xl font-bold text-gray-800">Access Management</h1>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="bg-white p-6 rounded-lg shadow">
-                    <h3 className="text-lg font-semibold mb-4">Roles</h3>
-                    <div className="space-y-3">
-                        <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                            <div>
-                                <p className="font-medium">Administrator</p>
-                                <p className="text-sm text-gray-600">Full access</p>
-                            </div>
-                            <button className="text-blue-600 hover:text-blue-800">
-                                <i className="fas fa-edit"></i>
-                            </button>
-                        </div>
-                        <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                            <div>
-                                <p className="font-medium">Staff</p>
-                                <p className="text-sm text-gray-600">Limited access</p>
-                            </div>
-                            <button className="text-blue-600 hover:text-blue-800">
-                                <i className="fas fa-edit"></i>
-                            </button>
-                        </div>
-                    </div>
-                </div>
-
-                <div className="bg-white p-6 rounded-lg shadow">
-                    <h3 className="text-lg font-semibold mb-4">Permissions</h3>
-                    <div className="space-y-2">
-                        <label className="flex items-center space-x-2">
-                            <input type="checkbox" className="rounded" checked readOnly />
-                            <span>View Letters</span>
-                        </label>
-                        <label className="flex items-center space-x-2">
-                            <input type="checkbox" className="rounded" checked readOnly />
-                            <span>Approve Letters</span>
-                        </label>
-                        <label className="flex items-center space-x-2">
-                            <input type="checkbox" className="rounded" />
-                            <span>Delete Letters</span>
-                        </label>
-                        <label className="flex items-center space-x-2">
-                            <input type="checkbox" className="rounded" checked readOnly />
-                            <span>Manage Users</span>
-                        </label>
-                    </div>
-                </div>
+            <div className="flex items-center justify-between">
+                <h1 className="text-3xl font-bold text-gray-800">Role Access Management</h1>
+                <button
+                    onClick={handleCreateRole}
+                    className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors"
+                >
+                    <i className="fas fa-plus mr-2"></i> Create Role
+                </button>
             </div>
+
+            {error && (
+                <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
+                    {error}
+                </div>
+            )}
+
+            {loading ? (
+                <div className="text-center py-12">
+                    <i className="fas fa-spinner fa-spin text-4xl text-gray-400"></i>
+                    <p className="mt-4 text-gray-600">Loading roles...</p>
+                </div>
+            ) : (
+                <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+                    {roles.map((role) => (
+                        <div key={role.id} className="bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow">
+                            <div className="p-6">
+                                <div className="flex items-center justify-between mb-4">
+                                    <h3 className="text-xl font-bold text-gray-800">{role.name}</h3>
+                                    <div className="flex gap-2">
+                                        <button
+                                            onClick={() => handleEditRole(role)}
+                                            className="text-blue-600 hover:text-blue-800 transition-colors"
+                                            title="Edit role"
+                                        >
+                                            <i className="fas fa-edit"></i>
+                                        </button>
+                                        <button
+                                            onClick={() => handleDeleteClick(role)}
+                                            className="text-red-600 hover:text-red-800 transition-colors"
+                                            title="Delete role"
+                                        >
+                                            <i className="fas fa-trash"></i>
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <div className="space-y-3">
+                                    <div className="flex items-center justify-between text-sm">
+                                        <span className="text-gray-600">Permissions:</span>
+                                        <span className="font-semibold text-blue-600">
+                                            {role.permissions_count}
+                                        </span>
+                                    </div>
+                                    <div className="flex items-center justify-between text-sm">
+                                        <span className="text-gray-600">Users:</span>
+                                        <span className="font-semibold text-green-600">
+                                            {role.users_count}
+                                        </span>
+                                    </div>
+                                </div>
+
+                                <div className="mt-4 pt-4 border-t border-gray-200">
+                                    <p className="text-xs text-gray-500 mb-2">Assigned Permissions:</p>
+                                    <div className="flex flex-wrap gap-1 max-h-32 overflow-y-auto">
+                                        {role.permissions && role.permissions.length > 0 ? (
+                                            role.permissions.slice(0, 8).map((permission, index) => (
+                                                <span
+                                                    key={index}
+                                                    className="px-2 py-1 bg-blue-50 text-blue-700 rounded text-xs"
+                                                >
+                                                    {permission}
+                                                </span>
+                                            ))
+                                        ) : (
+                                            <span className="text-gray-400 text-xs">No permissions assigned</span>
+                                        )}
+                                        {role.permissions && role.permissions.length > 8 && (
+                                            <span className="px-2 py-1 bg-gray-100 text-gray-600 rounded text-xs">
+                                                +{role.permissions.length - 8} more
+                                            </span>
+                                        )}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            )}
+
+            {/* Create/Edit Role Modal */}
+            {showModal && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+                    <div className="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+                        <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between sticky top-0 bg-white">
+                            <h2 className="text-xl font-bold text-gray-800">
+                                {selectedRole ? 'Edit Role' : 'Create New Role'}
+                            </h2>
+                            <button
+                                onClick={() => setShowModal(false)}
+                                className="text-gray-400 hover:text-gray-600"
+                            >
+                                <i className="fas fa-times"></i>
+                            </button>
+                        </div>
+
+                        <form onSubmit={handleSubmit} className="p-6 space-y-6">
+                            {/* Role Name */}
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">
+                                    Role Name <span className="text-red-500">*</span>
+                                </label>
+                                <input
+                                    type="text"
+                                    name="name"
+                                    value={formData.name}
+                                    onChange={handleInputChange}
+                                    className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                                        formErrors.name ? 'border-red-500' : 'border-gray-300'
+                                    }`}
+                                    required
+                                />
+                                {formErrors.name && (
+                                    <p className="mt-1 text-sm text-red-600">{formErrors.name[0]}</p>
+                                )}
+                            </div>
+
+                            {/* Permissions */}
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-3">
+                                    Permissions
+                                </label>
+                                <div className="space-y-4 max-h-96 overflow-y-auto border border-gray-200 rounded-lg p-4">
+                                    {Object.entries(groupedPermissions).map(([category, permissions]) => (
+                                        <div key={category} className="border-b border-gray-100 pb-4 last:border-0">
+                                            <div className="flex items-center justify-between mb-2">
+                                                <h4 className="font-semibold text-gray-800">{category}</h4>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => toggleCategoryPermissions(permissions)}
+                                                    className="text-sm text-blue-600 hover:text-blue-800"
+                                                >
+                                                    {permissions.every(p => formData.permissions.includes(p.name))
+                                                        ? 'Deselect All'
+                                                        : 'Select All'}
+                                                </button>
+                                            </div>
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                                                {permissions.map((permission) => (
+                                                    <label
+                                                        key={permission.id}
+                                                        className="flex items-center space-x-2 text-sm hover:bg-gray-50 p-2 rounded cursor-pointer"
+                                                    >
+                                                        <input
+                                                            type="checkbox"
+                                                            checked={formData.permissions.includes(permission.name)}
+                                                            onChange={() => handlePermissionChange(permission.name)}
+                                                            className="rounded text-blue-600 focus:ring-blue-500"
+                                                        />
+                                                        <span className="text-gray-700">{permission.name}</span>
+                                                    </label>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                                {formErrors.permissions && (
+                                    <p className="mt-1 text-sm text-red-600">{formErrors.permissions[0]}</p>
+                                )}
+                                <p className="mt-2 text-sm text-gray-600">
+                                    Selected: {formData.permissions.length} permissions
+                                </p>
+                            </div>
+
+                            {/* Form Actions */}
+                            <div className="flex gap-3 pt-4 sticky bottom-0 bg-white">
+                                <button
+                                    type="button"
+                                    onClick={() => setShowModal(false)}
+                                    className="flex-1 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                                    disabled={submitting}
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    type="submit"
+                                    disabled={submitting}
+                                    className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                                >
+                                    {submitting ? (
+                                        <>
+                                            <i className="fas fa-spinner fa-spin mr-2"></i>
+                                            Saving...
+                                        </>
+                                    ) : (
+                                        selectedRole ? 'Update Role' : 'Create Role'
+                                    )}
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
+
+            {/* Delete Confirmation Modal */}
+            {showDeleteConfirm && selectedRole && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                    <div className="bg-white rounded-lg shadow-xl max-w-md w-full mx-4">
+                        <div className="px-6 py-4 border-b border-gray-200">
+                            <h2 className="text-xl font-bold text-gray-800">Confirm Delete</h2>
+                        </div>
+
+                        <div className="px-6 py-4">
+                            <p className="text-gray-700">
+                                Are you sure you want to delete role <strong>{selectedRole.name}</strong>?
+                            </p>
+                            {selectedRole.users_count > 0 && (
+                                <div className="mt-3 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                                    <p className="text-sm text-yellow-800">
+                                        <i className="fas fa-exclamation-triangle mr-2"></i>
+                                        This role is assigned to {selectedRole.users_count} user(s) and cannot be deleted.
+                                    </p>
+                                </div>
+                            )}
+                        </div>
+
+                        <div className="px-6 py-4 bg-gray-50 flex gap-3">
+                            <button
+                                onClick={() => setShowDeleteConfirm(false)}
+                                className="flex-1 px-4 py-2 border border-gray-300 rounded-lg hover:bg-white transition-colors"
+                                disabled={submitting}
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onClick={handleDeleteConfirm}
+                                disabled={submitting || selectedRole.users_count > 0}
+                                className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                            >
+                                {submitting ? (
+                                    <>
+                                        <i className="fas fa-spinner fa-spin mr-2"></i>
+                                        Deleting...
+                                    </>
+                                ) : (
+                                    'Delete Role'
+                                )}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

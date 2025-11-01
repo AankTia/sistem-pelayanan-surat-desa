@@ -17,7 +17,8 @@
       "Bash(DB_CONNECTION=mysql CACHE_STORE=file php artisan:*)",
       "Bash(.gitignore)",
       "Bash(pkill:*)",
-      "Bash(TOKEN=\"1|HRHcWRAa7KIoV66xxv79lQDqg78indcHZrizMKL905c430ad\")"
+      "Bash(TOKEN=\"1|HRHcWRAa7KIoV66xxv79lQDqg78indcHZrizMKL905c430ad\")",
+      "Bash(test:*)"
     ],
     "deny": [],
     "ask": []

@@ -30,13 +30,18 @@ class RoleController extends Controller
         $roles = $query->latest()->paginate($perPage);
 
         $transformedRoles = $roles->map(function ($role) {
+            // Manually count users from model_has_roles table
+            $usersCount = \DB::table('model_has_roles')
+                ->where('role_id', $role->id)
+                ->count();
+
             return [
                 'id' => $role->id,
                 'name' => $role->name,
                 'guard_name' => $role->guard_name,
                 'permissions' => $role->permissions->pluck('name')->toArray(),
                 'permissions_count' => $role->permissions->count(),
-                'users_count' => $role->users()->count(),
+                'users_count' => $usersCount,
                 'created_at' => $role->created_at,
                 'updated_at' => $role->updated_at,
             ];
@@ -125,6 +130,11 @@ class RoleController extends Controller
             ], 404);
         }
 
+        // Manually count users from model_has_roles table
+        $usersCount = \DB::table('model_has_roles')
+            ->where('role_id', $role->id)
+            ->count();
+
         return response()->json([
             'success' => true,
             'data' => [
@@ -134,7 +144,7 @@ class RoleController extends Controller
                     'guard_name' => $role->guard_name,
                     'permissions' => $role->permissions->pluck('name')->toArray(),
                     'permissions_count' => $role->permissions->count(),
-                    'users_count' => $role->users()->count(),
+                    'users_count' => $usersCount,
                     'created_at' => $role->created_at,
                     'updated_at' => $role->updated_at,
                 ],
@@ -191,6 +201,11 @@ class RoleController extends Controller
 
         $role->load('permissions');
 
+        // Manually count users from model_has_roles table
+        $usersCount = \DB::table('model_has_roles')
+            ->where('role_id', $role->id)
+            ->count();
+
         return response()->json([
             'success' => true,
             'message' => 'Role updated successfully',
@@ -201,7 +216,7 @@ class RoleController extends Controller
                     'guard_name' => $role->guard_name,
                     'permissions' => $role->permissions->pluck('name')->toArray(),
                     'permissions_count' => $role->permissions->count(),
-                    'users_count' => $role->users()->count(),
+                    'users_count' => $usersCount,
                     'updated_at' => $role->updated_at,
                 ],
             ],
@@ -225,8 +240,11 @@ class RoleController extends Controller
             ], 404);
         }
 
-        // Prevent deleting roles that have users
-        $usersCount = $role->users()->count();
+        // Prevent deleting roles that have users - manually count from model_has_roles table
+        $usersCount = \DB::table('model_has_roles')
+            ->where('role_id', $role->id)
+            ->count();
+
         if ($usersCount > 0) {
             return response()->json([
                 'success' => false,
