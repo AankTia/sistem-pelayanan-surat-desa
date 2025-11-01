@@ -5,9 +5,9 @@ namespace Database\Seeders;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Str;
-use App\Models\KategoriSurat;
+use App\Models\LetterCategory;
 
-class KategoriSuratSeeder extends Seeder
+class LetterCategorySeeder extends Seeder
 {
     /**
      * Run the database seeds.
@@ -67,7 +67,7 @@ class KategoriSuratSeeder extends Seeder
         ];
 
         foreach ($data as $item) {
-            KategoriSurat::updateOrCreate(
+            LetterCategory::updateOrCreate(
                 ['slug' => Str::slug($item['name'])],
                 array_merge($item, [
                     'id' => (string) Str::uuid(),

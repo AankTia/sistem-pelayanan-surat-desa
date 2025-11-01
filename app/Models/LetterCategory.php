@@ -5,9 +5,9 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Str;
 
-class KategoriSurat extends Model
+class LetterCategory extends Model
 {
-    protected $table = 'kategori_surat';
+    protected $table = 'letter_categories';
 
     // UUID primary key setup
     public $incrementing = false;

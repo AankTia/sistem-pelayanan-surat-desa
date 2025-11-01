@@ -11,7 +11,7 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('kategori_surat', function (Blueprint $table) {
+        Schema::create('letter_categories', function (Blueprint $table) {
             $table->uuid('id')->primary();
             
             $table->string('name', 255);
@@ -36,6 +36,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('kategori_surat');
+        Schema::dropIfExists('letter_categories');
     }
 };
