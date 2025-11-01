@@ -27,8 +27,10 @@ class AuthController extends Controller
             ], 401);
         }
 
-        // Delete old tokens
-        $user->tokens()->delete();
+        // Delete all old tokens for this user
+        $user->tokens->each(function ($token) {
+            $token->delete();
+        });
 
         // Create new token
         $token = $user->createToken('auth-token')->plainTextToken;
@@ -59,7 +61,10 @@ class AuthController extends Controller
     public function logout(Request $request)
     {
         // Revoke current user token
-        $request->user()->currentAccessToken()->delete();
+        $token = $request->user()->currentAccessToken();
+        if ($token) {
+            $token->delete();
+        }
 
         return response()->json([
             'success' => true,
