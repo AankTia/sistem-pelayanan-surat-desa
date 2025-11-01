@@ -7,23 +7,28 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Str;
 
-class LetterCategory extends Model
+class LetterTemplate extends Model
 {
     use HasFactory, SoftDeletes;
 
-    protected $table = 'letter_categories';
+    protected $table = 'letter_templates';
 
     // UUID primary key setup
     public $incrementing = false;
     protected $keyType = 'string';
-
+    
     protected $fillable = [
+        'letter_category_id',
         'name',
-        'slug',
-        'description',
-        'icon',
-        'order',
+        'code',
+        'fields',
+        'template_html',
+        'signature_type',
         'status',
+    ];
+
+    protected $casts = [
+        'fields' => 'array',
     ];
 
     protected static function boot()
@@ -35,17 +40,12 @@ class LetterCategory extends Model
             if (empty($model->id)) {
                 $model->id = (string) Str::uuid();
             }
-
-            if (empty($model->slug) && !empty($model->name)) {
-                $model->slug = Str::slug($model->name);
-            }
         });
+    }
 
-        // Automatically update slug if name changes
-        static::updating(function ($model) {
-            if ($model->isDirty('name')) {
-                $model->slug = Str::slug($model->name);
-            }
-        });
+    // Relationship: each template belongs to one category
+    public function category()
+    {
+        return $this->belongsTo(LetterCategory::class, 'letter_category_id');
     }
 }
