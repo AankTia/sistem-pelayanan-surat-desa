@@ -291,10 +291,10 @@ function AdminLayout({ children }) {
         <div className="min-h-screen bg-gray-100">
             <Sidebar isOpen={sidebarOpen} toggleSidebar={() => setSidebarOpen(!sidebarOpen)} />
 
-            <div className={`transition-all duration-300 ${sidebarOpen ? 'lg:ml-64' : 'lg:ml-20'}`}>
+            <div className={`min-h-screen flex flex-col transition-all duration-300 ${sidebarOpen ? 'lg:ml-64' : 'lg:ml-20'}`}>
                 <Header />
 
-                <main className="p-6">
+                <main className="flex-1 p-6">
                     {/* Toggle Button for Desktop */}
                     <button
                         onClick={() => setSidebarOpen(!sidebarOpen)}
