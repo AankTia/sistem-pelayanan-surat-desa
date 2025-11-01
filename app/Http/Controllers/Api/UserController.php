@@ -34,10 +34,24 @@ class UserController extends Controller
 
         $users = $query->latest()->paginate($perPage);
 
+        // Transform users to include role names instead of full role objects
+        $transformedUsers = $users->map(function ($user) {
+            return [
+                'id' => $user->id,
+                'name' => $user->name,
+                'email' => $user->email,
+                'username' => $user->username,
+                'roles' => $user->getRoleNames()->toArray(),
+                'permissions' => $user->getAllPermissions()->pluck('name')->toArray(),
+                'created_at' => $user->created_at,
+                'updated_at' => $user->updated_at,
+            ];
+        });
+
         return response()->json([
             'success' => true,
             'data' => [
-                'users' => $users->items(),
+                'users' => $transformedUsers->values()->all(),
                 'pagination' => [
                     'current_page' => $users->currentPage(),
                     'last_page' => $users->lastPage(),
