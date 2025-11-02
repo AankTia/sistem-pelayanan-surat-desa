@@ -263,9 +263,9 @@ class LetterTemplateSeeder extends Seeder
                 continue;
             }
 
+            $counter = 1;
+
             foreach ($groupedTemplates as $templateName => $templateData) {
-                $counter = 1;
-                // $codePrefix = '{}'$templateData['catgory_code'];
                 $codePrefix = $templateData['category_code'] . '-' . $templateData['code'];
                 $code = sprintf('%s-%03d', $codePrefix, $counter++);
 
@@ -283,42 +283,6 @@ class LetterTemplateSeeder extends Seeder
                 );
             }
         }
-
-        // foreach ($templates as $categoryName => $groupedTemplates) {
-        //     $categoryId = $categories[$categoryName] ?? null;
-        //     if (!$categoryId) {
-        //         $this->command->warn("⚠️ Category '{$categoryName}' not found — skipping.");
-        //         continue;
-        //     }
-
-        //     foreach ($groupedTemplates as $prefix => $templateList) {
-        //         $counter = 1;
-
-        //         foreach ($templateList as $templateName => $templateCode) {
-        //             $code = sprintf('%s-%03d', $templateCode, $counter++);
-
-        //             LetterTemplate::updateOrCreate(
-        //                 ['code' => $code],
-        //                 [
-        //                     'id' => Str::uuid(),
-        //                     'letter_category_id' => $categoryId,
-        //                     'name' => $templateName,
-        //                     'fields' => [
-        //                         'nama',
-        //                         'nik',
-        //                         'alamat',
-        //                         'tempat_lahir',
-        //                         'tanggal_lahir',
-        //                         'jenis_kelamin',
-        //                     ],
-        //                     'template_html' => '<p>Yang bertanda tangan di bawah ini, Kepala Desa/Lurah ..., menerangkan bahwa ...</p>',
-        //                     'signature_type' => 'digital',
-        //                     'status' => 'active',
-        //                 ]
-        //             );
-        //         }
-        //     }
-        // }
 
         $this->command->info('✅ Letter templates with official codes seeded successfully!');
     }
