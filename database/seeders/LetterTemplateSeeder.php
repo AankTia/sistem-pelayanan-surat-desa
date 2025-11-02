@@ -98,11 +98,90 @@ class LetterTemplateSeeder extends Seeder
                     ]),
                     'template_html' => '<p>Yang bertandatangan di bawah ini, Kepala {nama_desa} {nama_kecamatan} {nama_kabupaten}, menerangkan dengan sesungguhnya bahwa:</p><br><table style="border-style:none;"><tr><td>Nama</td><td>:</td><td>{nama}</td></tr><tr><td>NIK</td><td>:</td><td>{nik}</td></tr><tr><td>Tempat/Tanggal Lahir</td><td>:</td><td>{ttl}</td></tr><tr><td>Jenis Kelamin</td><td>:</td><td>{jenis_kelamin}</td></tr><tr><td>Alamat</td><td>:</td><td>{alamat}</td></tr></table><br><p>Orang tersebut di atas benar-benar penduduk desa kami yang akan melakukan datang ke {tujuan_pindah}. Surat keterangan ini dibuat untuk keperluan administrasi kependudukan.</p><p>Demikian surat ini dibuat agar dapat digunakan sebagaimana mestinya.</p>',
                 ],
-                // 'Surat Keterangan Tempat Tinggal Sementara' => 'SKTTS',
-                // 'Surat Keterangan Belum Memiliki KTP' => 'SKBMK',
-                // 'Surat Keterangan KK / KTP yang Hilang' => 'SKKH',
-                // 'Surat Keterangan Penduduk Sementara (SKPS)' => 'SKPS',
-
+                'Surat Keterangan Tempat Tinggal Sementara' => [
+                    'category_code' => 'SKP',
+                    'code' => 'SKTTS',
+                    'signature_type' => 'manual',
+                    'status' => 'active',
+                    'fields' => json_encode([
+                        ["name" => "nama", "label" => "Nama", "type" => "text", "placeholder" => "Nama lengkap sesuai KTP", "required" => true, "options" => []],
+                        ["name" => "nik", "label" => "NIK", "type" => "text", "placeholder" => "Nomor Induk Kependudukan", "required" => true, "options" => []],
+                        ["name" => "tempat_lahir", "label" => "Tempat Lahir", "type" => "text", "required" => true, "options" => []],
+                        ["name" => "tanggal_lahir", "label" => "Tanggal Lahir", "type" => "date", "required" => true, "options" => []],
+                        ["name" => "jenis_kelamin", "label" => "Jenis Kelamin", "type" => "select", "options" => ["Laki-laki", "Perempuan", "options" => []], "required" => true, "options" => []],
+                        ["name" => "agama", "label" => "Agama", "type" => "text", "required" => true, "options" => []],
+                        ["name" => "pekerjaan", "label" => "Pekerjaan", "type" => "text", "required" => true, "options" => []],
+                        ["name" => "alamat_asal", "label" => "Alamat Asal", "type" => "textarea", "placeholder" => "Alamat tempat tinggal asal", "required" => true, "options" => []],
+                        ["name" => "alamat_sekarang", "label" => "Alamat Tempat Tinggal Sementara", "type" => "textarea", "placeholder" => "Alamat lengkap di wilayah desa/kelurahan ini", "required" => true, "options" => []],
+                        ["name" => "lama_tinggal", "label" => "Lama Tinggal", "type" => "text", "placeholder" => "Misal=>6 bulan", "required" => true, "options" => []],
+                        ["name" => "tujuan", "label" => "Tujuan Tinggal Sementara", "type" => "text", "placeholder" => "Misal=>Bekerja, Menempuh Pendidikan", "required" => true, "options" => []],
+                        ["name" => "keperluan", "label" => "Keperluan Surat", "type" => "text", "placeholder" => "Contoh=>Untuk mengurus administrasi kependudukan", "required" => true, "options" => []]
+                    ]),
+                    'template_html' => '<p>Yang bertanda tangan di bawah ini Kepala Desa {{desa}} Kecamatan {{kecamatan}} Kabupaten {{kabupaten}}, dengan ini menerangkan bahwa:</p><table style="margin-left: 20px;"><tr><td>Nama</td><td>:</td><td>{{nama}}</td></tr><tr><td>NIK</td><td>:</td><td>{{nik}}</td></tr><tr><td>Tempat/Tanggal Lahir</td><td>:</td><td>{{tempat_lahir}}, {{tanggal_lahir}}</td></tr><tr><td>Jenis Kelamin</td><td>:</td><td>{{jenis_kelamin}}</td></tr><tr><td>Agama</td><td>:</td><td>{{agama}}</td></tr><tr><td>Pekerjaan</td><td>:</td><td>{{pekerjaan}}</td></tr><tr><td>Alamat Asal</td><td>:</td><td>{{alamat_asal}}</td></tr><tr><td>Alamat Tinggal Sementara</td><td>:</td><td>{{alamat_sekarang}}</td></tr></table><p>Yang bersangkutan benar-benar <b>tinggal sementara di alamat tersebut</b> sejak {{lama_tinggal}}, dengan tujuan {{tujuan}}.</p><p>Demikian surat keterangan ini dibuat untuk dipergunakan sebagaimana mestinya.</p>',
+                ],
+                'Surat Keterangan Belum Memiliki KTP' => [
+                    'category_code' => 'SKP',
+                    'code' => 'SKBMK',
+                    'signature_type' => 'manual',
+                    'status' => 'active',
+                    'fields' => json_encode([
+                        ["name" => "nama", "label" => "Nama Lengkap", "type" => "text", "placeholder" => "Nama lengkap sesuai KK", "required" => true],
+                        ["name" => "nik", "label" => "NIK", "type" => "text", "placeholder" => "Nomor Induk Kependudukan (jika sudah ada)", "required" => false],
+                        ["name" => "tempat_lahir", "label" => "Tempat Lahir", "type" => "text", "required" => true],
+                        ["name" => "tanggal_lahir", "label" => "Tanggal Lahir", "type" => "date", "required" => true],
+                        ["name" => "jenis_kelamin", "label" => "Jenis Kelamin", "type" => "select", "options" => ["Laki-laki", "Perempuan"], "required" => true],
+                        ["name" => "agama", "label" => "Agama", "type" => "text", "required" => true],
+                        ["name" => "pekerjaan", "label" => "Pekerjaan", "type" => "text", "required" => true],
+                        ["name" => "alamat", "label" => "Alamat Tempat Tinggal", "type" => "textarea", "placeholder" => "Alamat lengkap sesuai KK atau domisili", "required" => true],
+                        ["name" => "alasan", "label" => "Alasan Belum Memiliki KTP", "type" => "text", "placeholder" => "Contoh => Belum berusia 17 tahun", "required" => true],
+                        ["name" => "keperluan", "label" => "Keperluan Surat", "type" => "text", "placeholder" => "Contoh => Untuk pengurusan administrasi sekolah", "required" => true],
+                    ]),
+                    'template_html' => '<p style="text-align: center; font-weight: bold; text-decoration: underline;">SURAT KETERANGAN BELUM MEMILIKI KTP</p><p style="text-align: center;">Nomor: {{nomor_surat}}</p><p>Yang bertanda tangan di bawah ini Kepala Desa {{desa}} Kecamatan {{kecamatan}} Kabupaten {{kabupaten}}, dengan ini menerangkan bahwa:</p><table style="margin-left: 20px;"><tr><td>Nama</td><td>:</td><td>{{nama}}</td></tr><tr><td>NIK</td><td>:</td><td>{{nik}}</td></tr><tr><td>Tempat/Tanggal Lahir</td><td>:</td><td>{{tempat_lahir}}, {{tanggal_lahir}}</td></tr><tr><td>Jenis Kelamin</td><td>:</td><td>{{jenis_kelamin}}</td></tr><tr><td>Agama</td><td>:</td><td>{{agama}}</td></tr><tr><td>Pekerjaan</td><td>:</td><td>{{pekerjaan}}</td></tr><tr><td>Alamat</td><td>:</td><td>{{alamat}}</td></tr></table><p>Adalah benar warga Desa {{desa}} Kecamatan {{kecamatan}} Kabupaten {{kabupaten}}, dan berdasarkan keterangan yang bersangkutan saat ini <b>belum memiliki Kartu Tanda Penduduk (KTP)</b> dengan alasan: <b>{{alasan}}</b>.</p><p>Surat keterangan ini dibuat atas permintaan yang bersangkutan untuk keperluan: <b>{{keperluan}}</b>.</p><p>Demikian surat keterangan ini dibuat dengan sebenarnya untuk dapat dipergunakan sebagaimana mestinya.</p><p style="text-align: right; margin-top: 20px;">{{desa}}, {{tanggal_surat}}<br>Kepala Desa {{desa}}<br><br><br><b>{{nama_kades}}</b></p>',
+                ],
+                'Surat Keterangan KK / KTP yang Hilang' => [
+                    'category_code' => 'SKP',
+                    'code' => 'SKKH',
+                    'signature_type' => 'manual',
+                    'status' => 'active',
+                    'fields' => json_encode([
+                        ["name" => "nama", "label" => "Nama Lengkap", "type" => "text", "placeholder" => "Nama lengkap sesuai KK/KTP", "required" => true],
+                        ["name" => "nik", "label" => "NIK", "type" => "text", "placeholder" => "Nomor Induk Kependudukan", "required" => true],
+                        ["name" => "tempat_lahir", "label" => "Tempat Lahir", "type" => "text", "required" => true],
+                        ["name" => "tanggal_lahir", "label" => "Tanggal Lahir", "type" => "date", "required" => true],
+                        ["name" => "jenis_kelamin", "label" => "Jenis Kelamin", "type" => "select", "options" => ["Laki-laki", "Perempuan"], "required" => true],
+                        ["name" => "agama", "label" => "Agama", "type" => "text", "required" => true],
+                        ["name" => "pekerjaan", "label" => "Pekerjaan", "type" => "text", "required" => true],
+                        ["name" => "alamat", "label" => "Alamat Tempat Tinggal", "type" => "textarea", "placeholder" => "Alamat lengkap sesuai KK", "required" => true],
+                        ["name" => "dokumen_hilang", "label" => "Jenis Dokumen yang Hilang", "type" => "select", "options" => ["KTP", "KK", "KTP dan KK"], "required" => true],
+                        ["name" => "tanggal_hilang", "label" => "Tanggal Kehilangan", "type" => "date", "required" => true],
+                        ["name" => "tempat_hilang", "label" => "Tempat Kehilangan", "type" => "text", "placeholder" => "Lokasi kehilangan dokumen", "required" => true],
+                        ["name" => "keperluan", "label" => "Keperluan Surat", "type" => "text", "placeholder" => "Contoh: Pengurusan dokumen baru ke Disdukcapil", "required" => true],
+                    ]),
+                    'template_html' => '<p style="text-align: center; font-weight: bold; text-decoration: underline;">SURAT KETERANGAN KEHILANGAN KK / KTP</p><p style="text-align: center;">Nomor: {{nomor_surat}}</p><p>Yang bertanda tangan di bawah ini Kepala Desa {{desa}} Kecamatan {{kecamatan}} Kabupaten {{kabupaten}}, dengan ini menerangkan bahwa:</p><table style="margin-left: 20px;"><tr><td>Nama</td><td>:</td><td>{{nama}}</td></tr><tr><td>NIK</td><td>:</td><td>{{nik}}</td></tr><tr><td>Tempat/Tanggal Lahir</td><td>:</td><td>{{tempat_lahir}}, {{tanggal_lahir}}</td></tr><tr><td>Jenis Kelamin</td><td>:</td><td>{{jenis_kelamin}}</td></tr><tr><td>Agama</td><td>:</td><td>{{agama}}</td></tr><tr><td>Pekerjaan</td><td>:</td><td>{{pekerjaan}}</td></tr><tr><td>Alamat</td><td>:</td><td>{{alamat}}</td></tr></table><p>Berdasarkan keterangan yang bersangkutan, telah kehilangan <b>{{dokumen_hilang}}</b> pada tanggal <b>{{tanggal_hilang}}</b> di <b>{{tempat_hilang}}</b>.</p><p>Surat keterangan ini dibuat untuk keperluan: <b>{{keperluan}}</b>.</p><p>Demikian surat keterangan ini dibuat dengan sebenarnya agar dapat dipergunakan sebagaimana mestinya.</p><p style="text-align: right; margin-top: 20px;">{{desa}}, {{tanggal_surat}}<br>Kepala Desa {{desa}}<br><br><br><b>{{nama_kades}}</b></p>',
+                ],
+                'Surat Keterangan Penduduk Sementara' => [
+                    'category_code' => 'SKP',
+                    'code' => 'SKPS',
+                    'signature_type' => 'manual',
+                    'status' => 'active',
+                    'fields' => json_encode([
+                        ["name" => "nama", "label" => "Nama Lengkap", "type" => "text", "placeholder" => "Nama lengkap sesuai KTP", "required" => true],
+                        ["name" => "nik", "label" => "NIK", "type" => "text", "placeholder" => "Nomor Induk Kependudukan", "required" => true],
+                        ["name" => "tempat_lahir", "label" => "Tempat Lahir", "type" => "text", "required" => true],
+                        ["name" => "tanggal_lahir", "label" => "Tanggal Lahir", "type" => "date", "required" => true],
+                        ["name" => "jenis_kelamin", "label" => "Jenis Kelamin", "type" => "select", "options" => ["Laki-laki", "Perempuan"], "required" => true],
+                        ["name" => "agama", "label" => "Agama", "type" => "text", "required" => true],
+                        ["name" => "status_perkawinan", "label" => "Status Perkawinan", "type" => "select", "options" => ["Belum Kawin", "Kawin", "Cerai Hidup", "Cerai Mati"], "required" => true],
+                        ["name" => "pekerjaan", "label" => "Pekerjaan", "type" => "text", "required" => true],
+                        ["name" => "kewarganegaraan", "label" => "Kewarganegaraan", "type" => "text", "placeholder" => "Contoh: WNI", "required" => true],
+                        ["name" => "alamat_asal", "label" => "Alamat Asal", "type" => "textarea", "placeholder" => "Alamat tempat tinggal asal", "required" => true],
+                        ["name" => "alamat_sementara", "label" => "Alamat Tempat Tinggal Sementara", "type" => "textarea", "placeholder" => "Alamat di wilayah desa/kelurahan ini", "required" => true],
+                        ["name" => "tanggal_mulai_tinggal", "label" => "Tanggal Mulai Tinggal", "type" => "date", "required" => true],
+                        ["name" => "tujuan_tinggal", "label" => "Tujuan Tinggal", "type" => "text", "placeholder" => "Contoh: Bekerja / Belajar / Menetap sementara", "required" => true],
+                        ["name" => "keperluan", "label" => "Keperluan Surat", "type" => "text", "placeholder" => "Contoh: Untuk melengkapi dokumen administrasi kependudukan", "required" => true],
+                    ]),
+                    'template_html' => '<p style="text-align: center; font-weight: bold; text-decoration: underline;">SURAT KETERANGAN PENDUDUK SEMENTARA</p><p style="text-align: center;">Nomor: {{nomor_surat}}</p><p>Yang bertanda tangan di bawah ini Kepala Desa {{desa}} Kecamatan {{kecamatan}} Kabupaten {{kabupaten}}, dengan ini menerangkan bahwa:</p><table style="margin-left: 20px;"><tr><td>Nama</td><td>:</td><td>{{nama}}</td></tr><tr><td>NIK</td><td>:</td><td>{{nik}}</td></tr><tr><td>Tempat/Tanggal Lahir</td><td>:</td><td>{{tempat_lahir}}, {{tanggal_lahir}}</td></tr><tr><td>Jenis Kelamin</td><td>:</td><td>{{jenis_kelamin}}</td></tr><tr><td>Agama</td><td>:</td><td>{{agama}}</td></tr><tr><td>Status Perkawinan</td><td>:</td><td>{{status_perkawinan}}</td></tr><tr><td>Pekerjaan</td><td>:</td><td>{{pekerjaan}}</td></tr><tr><td>Kewarganegaraan</td><td>:</td><td>{{kewarganegaraan}}</td></tr><tr><td>Alamat Asal</td><td>:</td><td>{{alamat_asal}}</td></tr><tr><td>Alamat Tinggal Sementara</td><td>:</td><td>{{alamat_sementara}}</td></tr></table><p>Yang bersangkutan benar-benar <b>tinggal sementara di alamat tersebut</b> sejak tanggal {{tanggal_mulai_tinggal}}, dengan tujuan {{tujuan_tinggal}}.</p><p>Surat keterangan ini dibuat untuk keperluan: <b>{{keperluan}}</b>.</p><p>Demikian surat keterangan ini dibuat dengan sebenarnya agar dapat dipergunakan sebagaimana mestinya.</p><p style="text-align: right; margin-top: 20px;">{{desa}}, {{tanggal_surat}}<br>Kepala Desa {{desa}}<br><br><br><b>{{nama_kades}}</b></p>',
+                ],
             ],
             // 2. Surat Keterangan Status Perkawinan
             // 'Surat Keterangan Status Perkawinan' => [
@@ -177,7 +256,7 @@ class LetterTemplateSeeder extends Seeder
             // ],
         ];
 
-        foreach($templates as $categoryName => $groupedTemplates) {
+        foreach ($templates as $categoryName => $groupedTemplates) {
             $categoryId = $categories[$categoryName] ?? null;
             if (!$categoryId) {
                 $this->command->warn("⚠️ Category '{$categoryName}' not found — skipping.");
