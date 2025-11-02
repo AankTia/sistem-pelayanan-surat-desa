@@ -2,14 +2,9 @@ import React, { useState, createContext, useContext } from 'react';
 import { createRoot } from 'react-dom/client';
 import { BrowserRouter, Routes, Route, Navigate, Link, useNavigate, useLocation } from 'react-router-dom';
 import { BarChart, Bar, LineChart, Line, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
-import { useEditor, EditorContent } from '@tiptap/react';
-import StarterKit from '@tiptap/starter-kit';
-import TextAlign from '@tiptap/extension-text-align';
-import TiptapLink from '@tiptap/extension-link';
-import Image from '@tiptap/extension-image';
-import { TextStyle } from '@tiptap/extension-text-style';
-import { Color } from '@tiptap/extension-color';
-import Underline from '@tiptap/extension-underline';
+import { CKEditor } from '@ckeditor/ckeditor5-react';
+import { ClassicEditor, Bold, Essentials, Italic, Mention, Paragraph, Undo, Heading, List, Underline, Strikethrough, Alignment, Link as CKLink, Image, ImageUpload, BlockQuote, FontColor, FontBackgroundColor, Table, TableToolbar, TableProperties, TableCellProperties, Indent, IndentBlock } from 'ckeditor5';
+import 'ckeditor5/ckeditor5.css';
 import axios from 'axios';
 
 // ==================== API SETUP ====================
@@ -2272,43 +2267,13 @@ function LetterCategoryPage() {
     );
 }
 
-// Tiptap Editor Component
-function TiptapEditor({ value, onChange }) {
+// CKEditor Component
+function CKEditorComponent({ value, onChange }) {
     const [isPreview, setIsPreview] = React.useState(false);
-
-    const editor = useEditor({
-        extensions: [
-            StarterKit,
-            Underline,
-            TextStyle,
-            Color,
-            TextAlign.configure({
-                types: ['heading', 'paragraph'],
-            }),
-            TiptapLink.configure({
-                openOnClick: false,
-            }),
-            Image,
-        ],
-        content: value || '',
-        onUpdate: ({ editor }) => {
-            onChange(editor.getHTML());
-        },
-    });
-
-    React.useEffect(() => {
-        if (editor && value !== editor.getHTML()) {
-            editor.commands.setContent(value || '');
-        }
-    }, [value, editor]);
-
-    if (!editor) {
-        return null;
-    }
 
     return (
         <div className="border border-gray-300 rounded-lg">
-            <div className="flex flex-wrap gap-1 p-2 border-b border-gray-300 bg-gray-50">
+            <div className="flex items-center gap-2 p-2 border-b border-gray-300 bg-gray-50">
                 <div className="flex items-center gap-2 ml-auto">
                     <button
                         type="button"
@@ -2328,120 +2293,80 @@ function TiptapEditor({ value, onChange }) {
             </div>
 
             {!isPreview && (
-                <>
-                    <div className="flex flex-wrap gap-1 p-2 border-b border-gray-300 bg-gray-50">
-                        <button
-                            type="button"
-                            onClick={() => editor.chain().focus().toggleBold().run()}
-                            className={`px-3 py-1 text-sm rounded ${editor.isActive('bold') ? 'bg-blue-600 text-white' : 'bg-white text-gray-700 hover:bg-gray-100'}`}
-                        >
-                            <i className="fas fa-bold"></i>
-                        </button>
-                        <button
-                            type="button"
-                            onClick={() => editor.chain().focus().toggleItalic().run()}
-                            className={`px-3 py-1 text-sm rounded ${editor.isActive('italic') ? 'bg-blue-600 text-white' : 'bg-white text-gray-700 hover:bg-gray-100'}`}
-                        >
-                            <i className="fas fa-italic"></i>
-                        </button>
-                        <button
-                            type="button"
-                            onClick={() => editor.chain().focus().toggleUnderline().run()}
-                            className={`px-3 py-1 text-sm rounded ${editor.isActive('underline') ? 'bg-blue-600 text-white' : 'bg-white text-gray-700 hover:bg-gray-100'}`}
-                        >
-                            <i className="fas fa-underline"></i>
-                        </button>
-                        <button
-                            type="button"
-                            onClick={() => editor.chain().focus().toggleStrike().run()}
-                            className={`px-3 py-1 text-sm rounded ${editor.isActive('strike') ? 'bg-blue-600 text-white' : 'bg-white text-gray-700 hover:bg-gray-100'}`}
-                        >
-                            <i className="fas fa-strikethrough"></i>
-                        </button>
-                        <div className="w-px bg-gray-300 mx-1"></div>
-                        <button
-                            type="button"
-                            onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()}
-                            className={`px-3 py-1 text-sm rounded ${editor.isActive('heading', { level: 1 }) ? 'bg-blue-600 text-white' : 'bg-white text-gray-700 hover:bg-gray-100'}`}
-                        >
-                            H1
-                        </button>
-                        <button
-                            type="button"
-                            onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
-                            className={`px-3 py-1 text-sm rounded ${editor.isActive('heading', { level: 2 }) ? 'bg-blue-600 text-white' : 'bg-white text-gray-700 hover:bg-gray-100'}`}
-                        >
-                            H2
-                        </button>
-                        <button
-                            type="button"
-                            onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()}
-                            className={`px-3 py-1 text-sm rounded ${editor.isActive('heading', { level: 3 }) ? 'bg-blue-600 text-white' : 'bg-white text-gray-700 hover:bg-gray-100'}`}
-                        >
-                            H3
-                        </button>
-                        <div className="w-px bg-gray-300 mx-1"></div>
-                        <button
-                            type="button"
-                            onClick={() => editor.chain().focus().toggleBulletList().run()}
-                            className={`px-3 py-1 text-sm rounded ${editor.isActive('bulletList') ? 'bg-blue-600 text-white' : 'bg-white text-gray-700 hover:bg-gray-100'}`}
-                        >
-                            <i className="fas fa-list-ul"></i>
-                        </button>
-                        <button
-                            type="button"
-                            onClick={() => editor.chain().focus().toggleOrderedList().run()}
-                            className={`px-3 py-1 text-sm rounded ${editor.isActive('orderedList') ? 'bg-blue-600 text-white' : 'bg-white text-gray-700 hover:bg-gray-100'}`}
-                        >
-                            <i className="fas fa-list-ol"></i>
-                        </button>
-                        <div className="w-px bg-gray-300 mx-1"></div>
-                        <button
-                            type="button"
-                            onClick={() => editor.chain().focus().setTextAlign('left').run()}
-                            className={`px-3 py-1 text-sm rounded ${editor.isActive({ textAlign: 'left' }) ? 'bg-blue-600 text-white' : 'bg-white text-gray-700 hover:bg-gray-100'}`}
-                        >
-                            <i className="fas fa-align-left"></i>
-                        </button>
-                        <button
-                            type="button"
-                            onClick={() => editor.chain().focus().setTextAlign('center').run()}
-                            className={`px-3 py-1 text-sm rounded ${editor.isActive({ textAlign: 'center' }) ? 'bg-blue-600 text-white' : 'bg-white text-gray-700 hover:bg-gray-100'}`}
-                        >
-                            <i className="fas fa-align-center"></i>
-                        </button>
-                        <button
-                            type="button"
-                            onClick={() => editor.chain().focus().setTextAlign('right').run()}
-                            className={`px-3 py-1 text-sm rounded ${editor.isActive({ textAlign: 'right' }) ? 'bg-blue-600 text-white' : 'bg-white text-gray-700 hover:bg-gray-100'}`}
-                        >
-                            <i className="fas fa-align-right"></i>
-                        </button>
-                        <button
-                            type="button"
-                            onClick={() => editor.chain().focus().setTextAlign('justify').run()}
-                            className={`px-3 py-1 text-sm rounded ${editor.isActive({ textAlign: 'justify' }) ? 'bg-blue-600 text-white' : 'bg-white text-gray-700 hover:bg-gray-100'}`}
-                        >
-                            <i className="fas fa-align-justify"></i>
-                        </button>
-                        <div className="w-px bg-gray-300 mx-1"></div>
-                        <button
-                            type="button"
-                            onClick={() => editor.chain().focus().undo().run()}
-                            className="px-3 py-1 text-sm rounded bg-white text-gray-700 hover:bg-gray-100"
-                        >
-                            <i className="fas fa-undo"></i>
-                        </button>
-                        <button
-                            type="button"
-                            onClick={() => editor.chain().focus().redo().run()}
-                            className="px-3 py-1 text-sm rounded bg-white text-gray-700 hover:bg-gray-100"
-                        >
-                            <i className="fas fa-redo"></i>
-                        </button>
-                    </div>
-                    <EditorContent editor={editor} className="prose max-w-none p-4 min-h-[300px] focus:outline-none" />
-                </>
+                <div className="p-4 ckeditor-wrapper">
+                    <CKEditor
+                        editor={ClassicEditor}
+                        data={value || ''}
+                        onChange={(event, editor) => {
+                            const data = editor.getData();
+                            onChange(data);
+                        }}
+                        config={{
+                            licenseKey: 'GPL',
+                            plugins: [
+                                Essentials,
+                                Bold,
+                                Italic,
+                                Underline,
+                                Strikethrough,
+                                Paragraph,
+                                Heading,
+                                List,
+                                Alignment,
+                                CKLink,
+                                BlockQuote,
+                                FontColor,
+                                FontBackgroundColor,
+                                Undo,
+                                Table,
+                                TableToolbar,
+                                TableProperties,
+                                TableCellProperties,
+                                Indent,
+                                IndentBlock,
+                            ],
+                            toolbar: [
+                                'undo', 'redo',
+                                '|',
+                                'heading',
+                                '|',
+                                'bold', 'italic', 'underline', 'strikethrough',
+                                '|',
+                                'fontColor', 'fontBackgroundColor',
+                                '|',
+                                'bulletedList', 'numberedList',
+                                '|',
+                                'outdent', 'indent',
+                                '|',
+                                'alignment',
+                                '|',
+                                'link', 'blockQuote',
+                                '|',
+                                'insertTable',
+                            ],
+                            heading: {
+                                options: [
+                                    { model: 'paragraph', title: 'Paragraph', class: 'ck-heading_paragraph' },
+                                    { model: 'heading1', view: 'h1', title: 'Heading 1', class: 'ck-heading_heading1' },
+                                    { model: 'heading2', view: 'h2', title: 'Heading 2', class: 'ck-heading_heading2' },
+                                    { model: 'heading3', view: 'h3', title: 'Heading 3', class: 'ck-heading_heading3' },
+                                ]
+                            },
+                            table: {
+                                contentToolbar: [
+                                    'tableColumn', 'tableRow', 'mergeTableCells',
+                                    'tableProperties', 'tableCellProperties'
+                                ]
+                            },
+                            placeholder: 'Enter the HTML template with placeholders like {{field_name}}',
+                        }}
+                    />
+                    <style>{`
+                        .ckeditor-wrapper .ck-editor__editable {
+                            min-height: 300px;
+                        }
+                    `}</style>
+                </div>
             )}
 
             {isPreview && (
@@ -3130,7 +3055,7 @@ function LetterTemplatePage() {
                                 <label className="block text-sm font-medium text-gray-700 mb-2">
                                     Template HTML <span className="text-red-500">*</span>
                                 </label>
-                                <TiptapEditor
+                                <CKEditorComponent
                                     value={formData.template_html}
                                     onChange={handleEditorChange}
                                 />
