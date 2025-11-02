@@ -184,12 +184,48 @@ class LetterTemplateSeeder extends Seeder
                 ],
             ],
             // 2. Surat Keterangan Status Perkawinan
-            // 'Surat Keterangan Status Perkawinan' => [
-            //     'SKP' => [
-            //         'Surat Keterangan Belum Menikah' => 'SKBM',
-            //         'Surat Keterangan Janda / Duda' => 'SKJD',
-            //     ]
-            // ],
+            'Surat Keterangan Status Perkawinan' => [
+                'Surat Keterangan Belum Menikah' => [
+                    'category_code' => 'SKSP',
+                    'code' => 'SKBM',
+                    'signature_type' => 'manual',
+                    'status' => 'active',
+                    'fields' => json_encode([
+                        ["name" => "nama", "label" => "Nama Lengkap", "type" => "text", "placeholder" => "Nama lengkap sesuai KTP", "required" => true],
+                        ["name" => "nik", "label" => "NIK", "type" => "text", "placeholder" => "Nomor Induk Kependudukan", "required" => true],
+                        ["name" => "tempat_lahir", "label" => "Tempat Lahir", "type" => "text", "required" => true],
+                        ["name" => "tanggal_lahir", "label" => "Tanggal Lahir", "type" => "date", "required" => true],
+                        ["name" => "jenis_kelamin", "label" => "Jenis Kelamin", "type" => "select", "options" => ["Laki-laki", "Perempuan"], "required" => true],
+                        ["name" => "agama", "label" => "Agama", "type" => "text", "required" => true],
+                        ["name" => "pekerjaan", "label" => "Pekerjaan", "type" => "text", "required" => true],
+                        ["name" => "alamat", "label" => "Alamat Tempat Tinggal", "type" => "textarea", "placeholder" => "Alamat lengkap sesuai KTP", "required" => true],
+                        ["name" => "keperluan", "label" => "Keperluan Surat", "type" => "text", "placeholder" => "Contoh: Untuk melengkapi administrasi pernikahan", "required" => true]
+                    ]),
+                    'template_html' => '<p style="text-align: center; font-weight: bold; text-decoration: underline;">SURAT KETERANGAN BELUM MENIKAH</p><p style="text-align: center;">Nomor: {{nomor_surat}}</p><p>Yang bertanda tangan di bawah ini Kepala Desa {{desa}} Kecamatan {{kecamatan}} Kabupaten {{kabupaten}}, dengan ini menerangkan bahwa:</p><table style="margin-left: 20px;"><tr><td>Nama</td><td>:</td><td>{{nama}}</td></tr><tr><td>NIK</td><td>:</td><td>{{nik}}</td></tr><tr><td>Tempat/Tanggal Lahir</td><td>:</td><td>{{tempat_lahir}}, {{tanggal_lahir}}</td></tr><tr><td>Jenis Kelamin</td><td>:</td><td>{{jenis_kelamin}}</td></tr><tr><td>Agama</td><td>:</td><td>{{agama}}</td></tr><tr><td>Pekerjaan</td><td>:</td><td>{{pekerjaan}}</td></tr><tr><td>Alamat</td><td>:</td><td>{{alamat}}</td></tr></table><p>Berdasarkan data yang ada pada kami, benar bahwa yang bersangkutan sampai dengan saat diterbitkannya surat ini **belum pernah menikah**.</p><p>Surat keterangan ini dibuat atas permintaan yang bersangkutan untuk keperluan: <b>{{keperluan}}</b>.</p><p>Demikian surat keterangan ini dibuat dengan sebenarnya agar dapat dipergunakan sebagaimana mestinya.</p><p style="text-align: right; margin-top: 20px;">{{desa}}, {{tanggal_surat}}<br>Kepala Desa {{desa}}<br><br><br><b>{{nama_kades}}</b></p>',
+                ],
+                'Surat Keterangan Janda / Duda' => [
+                    'category_code' => 'SKSP',
+                    'code' => 'SKJD',
+                    'signature_type' => 'manual',
+                    'status' => 'active',
+                    'fields' => json_encode([
+                        ["name" => "nama", "label" => "Nama Lengkap", "type" => "text", "placeholder" => "Nama lengkap sesuai KTP", "required" => true],
+                        ["name" => "nik", "label" => "NIK", "type" => "text", "placeholder" => "Nomor Induk Kependudukan", "required" => true],
+                        ["name" => "tempat_lahir", "label" => "Tempat Lahir", "type" => "text", "required" => true],
+                        ["name" => "tanggal_lahir", "label" => "Tanggal Lahir", "type" => "date", "required" => true],
+                        ["name" => "jenis_kelamin", "label" => "Jenis Kelamin", "type" => "select", "options" => ["Laki-laki", "Perempuan"], "required" => true],
+                        ["name" => "agama", "label" => "Agama", "type" => "text", "required" => true],
+                        ["name" => "pekerjaan", "label" => "Pekerjaan", "type" => "text", "required" => true],
+                        ["name" => "alamat", "label" => "Alamat Tempat Tinggal", "type" => "textarea", "placeholder" => "Alamat lengkap sesuai KTP", "required" => true],
+                        ["name" => "status", "label" => "Status", "type" => "select", "options" => ["Janda", "Duda"], "required" => true],
+                        ["name" => "nama_pasangan", "label" => "Nama Mantan Pasangan", "type" => "text", "placeholder" => "Nama suami/istri sebelumnya", "required" => true],
+                        ["name" => "alasan", "label" => "Alasan", "type" => "select", "options" => ["Cerai Hidup", "Cerai Mati"], "required" => true],
+                        ["name" => "tanggal_peristiwa", "label" => "Tanggal Perceraian / Kematian", "type" => "date", "required" => true],
+                        ["name" => "keperluan", "label" => "Keperluan Surat", "type" => "text", "placeholder" => "Contoh: Untuk melengkapi administrasi pernikahan", "required" => true]
+                    ]),
+                    'template_html' => '<p style="text-align: center; font-weight: bold; text-decoration: underline;">SURAT KETERANGAN JANDA / DUDA</p><p style="text-align: center;">Nomor: {{nomor_surat}}</p><p>Yang bertanda tangan di bawah ini Kepala Desa {{desa}} Kecamatan {{kecamatan}} Kabupaten {{kabupaten}}, dengan ini menerangkan bahwa:</p><table style="margin-left: 20px;"><tr><td>Nama</td><td>:</td><td>{{nama}}</td></tr><tr><td>NIK</td><td>:</td><td>{{nik}}</td></tr><tr><td>Tempat/Tanggal Lahir</td><td>:</td><td>{{tempat_lahir}}, {{tanggal_lahir}}</td></tr><tr><td>Jenis Kelamin</td><td>:</td><td>{{jenis_kelamin}}</td></tr><tr><td>Agama</td><td>:</td><td>{{agama}}</td></tr><tr><td>Pekerjaan</td><td>:</td><td>{{pekerjaan}}</td></tr><tr><td>Alamat</td><td>:</td><td>{{alamat}}</td></tr><tr><td>Status</td><td>:</td><td>{{status}}</td></tr></table><p>Bahwa yang bersangkutan adalah benar seorang <b>{{status}}</b> dari <b>{{nama_pasangan}}</b> yang telah <b>{{alasan}}</b> pada tanggal <b>{{tanggal_peristiwa}}</b>.</p><p>Surat keterangan ini dibuat atas permintaan yang bersangkutan untuk keperluan: <b>{{keperluan}}</b>.</p><p>Demikian surat keterangan ini dibuat dengan sebenarnya agar dapat dipergunakan sebagaimana mestinya.</p><p style="text-align: right; margin-top: 20px;">{{desa}}, {{tanggal_surat}}<br>Kepala Desa {{desa}}<br><br><br><b>{{nama_kades}}</b></p>',
+                ]
+            ],
             // 3. Surat Pengantar Nikah (Model N1 - N4)
             // 'Surat Pengantar Nikah (Model N1 - N4)' => [
             //     'NIKAH' => [
