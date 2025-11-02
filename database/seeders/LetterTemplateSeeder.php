@@ -79,20 +79,7 @@ class LetterTemplateSeeder extends Seeder
                             "options" => []
                         ]
                     ]),
-                    'template_html' => '
-                        <p>Yang bertandatangan di bawah ini, Kepala {nama_desa} {nama_kecamatan} {nama_kabupaten}, menerangkan dengan sesungguhnya bahwa:</p>
-                        <br>
-                        <table style="border-style:none;">
-                            <tr><td>Nama</td><td>:</td><td>{nama}</td></tr>
-                            <tr><td>NIK</td><td>:</td><td>{nik}</td></tr>
-                            <tr><td>Tempat/Tanggal Lahir</td><td>:</td><td>{ttl}</td></tr>
-                            <tr><td>Jenis Kelamin</td><td>:</td><td>{jenis_kelamin}</td></tr>
-                            <tr><td>Alamat</td><td>:</td><td>{alamat}</td></tr>
-                        </table>
-                        <br>
-                        <p>Orang tersebut di atas benar-benar penduduk desa kami yang akan melakukan pindah ke {tujuan_pindah}. 
-                        Surat keterangan ini dibuat untuk keperluan administrasi kependudukan.</p>
-                        <p>Demikian surat ini dibuat agar dapat digunakan sebagaimana mestinya.</p>',
+                    'template_html' => '<p>Yang bertandatangan di bawah ini, Kepala {nama_desa} {nama_kecamatan} {nama_kabupaten}, menerangkan dengan sesungguhnya bahwa:</p><br><table style="border-style:none;"><tr><td>Nama</td><td>:</td><td>{nama}</td></tr><tr><td>NIK</td><td>:</td><td>{nik}</td></tr><tr><td>Tempat/Tanggal Lahir</td><td>:</td><td>{ttl}</td></tr><tr><td>Jenis Kelamin</td><td>:</td><td>{jenis_kelamin}</td></tr><tr><td>Alamat</td><td>:</td><td>{alamat}</td></tr></table><br><p>Orang tersebut di atas benar-benar penduduk desa kami yang akan melakukan pindah ke {tujuan_pindah}. Surat keterangan ini dibuat untuk keperluan administrasi kependudukan.</p><p>Demikian surat ini dibuat agar dapat digunakan sebagaimana mestinya.</p>',
                 ],
                 'Surat Keterangan Datang' => [
                     'category_code' => 'SKP',
@@ -109,20 +96,7 @@ class LetterTemplateSeeder extends Seeder
                             "options" => []
                         ]
                     ]),
-                    'template_html' => '
-                        <p>Yang bertandatangan di bawah ini, Kepala {nama_desa} {nama_kecamatan} {nama_kabupaten}, menerangkan dengan sesungguhnya bahwa:</p>
-                        <br>
-                        <table style="border-style:none;">
-                            <tr><td>Nama</td><td>:</td><td>{nama}</td></tr>
-                            <tr><td>NIK</td><td>:</td><td>{nik}</td></tr>
-                            <tr><td>Tempat/Tanggal Lahir</td><td>:</td><td>{ttl}</td></tr>
-                            <tr><td>Jenis Kelamin</td><td>:</td><td>{jenis_kelamin}</td></tr>
-                            <tr><td>Alamat</td><td>:</td><td>{alamat}</td></tr>
-                        </table>
-                        <br>
-                        <p>Orang tersebut di atas benar-benar penduduk desa kami yang akan melakukan datang ke {tujuan_pindah}. 
-                        Surat keterangan ini dibuat untuk keperluan administrasi kependudukan.</p>
-                        <p>Demikian surat ini dibuat agar dapat digunakan sebagaimana mestinya.</p>',
+                    'template_html' => '<p>Yang bertandatangan di bawah ini, Kepala {nama_desa} {nama_kecamatan} {nama_kabupaten}, menerangkan dengan sesungguhnya bahwa:</p><br><table style="border-style:none;"><tr><td>Nama</td><td>:</td><td>{nama}</td></tr><tr><td>NIK</td><td>:</td><td>{nik}</td></tr><tr><td>Tempat/Tanggal Lahir</td><td>:</td><td>{ttl}</td></tr><tr><td>Jenis Kelamin</td><td>:</td><td>{jenis_kelamin}</td></tr><tr><td>Alamat</td><td>:</td><td>{alamat}</td></tr></table><br><p>Orang tersebut di atas benar-benar penduduk desa kami yang akan melakukan datang ke {tujuan_pindah}. Surat keterangan ini dibuat untuk keperluan administrasi kependudukan.</p><p>Demikian surat ini dibuat agar dapat digunakan sebagaimana mestinya.</p>',
                 ],
                 // 'Surat Keterangan Tempat Tinggal Sementara' => 'SKTTS',
                 // 'Surat Keterangan Belum Memiliki KTP' => 'SKBMK',
