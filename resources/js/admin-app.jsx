@@ -2486,11 +2486,27 @@ function LetterTemplatePage() {
 
     const handleEditClick = (template) => {
         setSelectedTemplate(template);
+
+        // Parse fields if it's a JSON string
+        let parsedFields = [];
+        if (template.fields) {
+            if (typeof template.fields === 'string') {
+                try {
+                    parsedFields = JSON.parse(template.fields);
+                } catch (e) {
+                    console.error('Failed to parse fields:', e);
+                    parsedFields = [];
+                }
+            } else if (Array.isArray(template.fields)) {
+                parsedFields = template.fields;
+            }
+        }
+
         setFormData({
             letter_category_id: template.letter_category?.id || '',
             name: template.name,
             code: template.code,
-            fields: template.fields || [],
+            fields: parsedFields,
             template_html: template.template_html || '',
             signature_type: template.signature_type,
             status: template.status
