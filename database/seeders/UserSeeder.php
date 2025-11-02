@@ -2,9 +2,10 @@
 
 namespace Database\Seeders;
 
-use Illuminate\Database\Seeder;
 use App\Models\User;
+use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Str;
 
 class UserSeeder extends Seeder
 {
@@ -15,6 +16,7 @@ class UserSeeder extends Seeder
     {
         // Create Super Admin
         $superAdmin = User::create([
+            'id' => (string) Str::uuid(),
             'name' => 'Super Admin',
             'email' => 'superadmin@example.com',
             'username' => 'superadmin',
@@ -24,6 +26,7 @@ class UserSeeder extends Seeder
 
         // Create Admin
         $admin = User::create([
+            'id' => (string) Str::uuid(),
             'name' => 'Admin User',
             'email' => 'admin@example.com',
             'username' => 'admin',
@@ -33,6 +36,7 @@ class UserSeeder extends Seeder
 
         // Create Staff users
         $staff1 = User::create([
+            'id' => (string) Str::uuid(),
             'name' => 'Budi Santoso',
             'email' => 'budi@example.com',
             'username' => 'budi',
@@ -41,6 +45,7 @@ class UserSeeder extends Seeder
         $staff1->assignRole('Staff');
 
         $staff2 = User::create([
+            'id' => (string) Str::uuid(),
             'name' => 'Siti Nurhaliza',
             'email' => 'siti@example.com',
             'username' => 'siti',
@@ -50,6 +55,7 @@ class UserSeeder extends Seeder
 
         // Create Operator
         $operator = User::create([
+            'id' => (string) Str::uuid(),
             'name' => 'Ahmad Yani',
             'email' => 'ahmad@example.com',
             'username' => 'ahmad',

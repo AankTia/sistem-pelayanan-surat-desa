@@ -6,6 +6,7 @@ use App\Http\Controllers\Api\RoleController;
 use App\Http\Controllers\Api\PermissionController;
 use App\Http\Controllers\Api\LetterCategoryController;
 use App\Http\Controllers\Api\LetterTemplateController;
+use App\Http\Controllers\Api\ActivityLogController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -37,6 +38,12 @@ Route::middleware('auth:sanctum')->group(function () {
     // Letter Template Management
     Route::get('letter-templates/all', [LetterTemplateController::class, 'all']);
     Route::apiResource('letter-templates', LetterTemplateController::class);
+
+    // Activity Log Management
+    Route::get('activity-logs/log-names', [ActivityLogController::class, 'logNames']);
+    Route::get('activity-logs/events', [ActivityLogController::class, 'events']);
+    Route::post('activity-logs/cleanup', [ActivityLogController::class, 'cleanup']);
+    Route::apiResource('activity-logs', ActivityLogController::class)->only(['index', 'show']);
 
     // Legacy route for compatibility
     Route::get('/user', function (Request $request) {

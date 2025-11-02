@@ -216,6 +216,33 @@ const letterTemplateAPI = {
     },
 };
 
+const activityLogAPI = {
+    getAll: async (params = {}) => {
+        const response = await api.get('/activity-logs', { params });
+        return response.data;
+    },
+
+    getById: async (id) => {
+        const response = await api.get(`/activity-logs/${id}`);
+        return response.data;
+    },
+
+    getLogNames: async () => {
+        const response = await api.get('/activity-logs/log-names');
+        return response.data;
+    },
+
+    getEvents: async () => {
+        const response = await api.get('/activity-logs/events');
+        return response.data;
+    },
+
+    cleanup: async (days) => {
+        const response = await api.post('/activity-logs/cleanup', { days });
+        return response.data;
+    },
+};
+
 // ==================== TOAST NOTIFICATION SYSTEM ====================
 const ToastContext = createContext();
 
@@ -482,8 +509,8 @@ function Sidebar({ isOpen, toggleSidebar }) {
         // { path: '/admin/residents', icon: 'fa-users', label: 'Penduduk' },
         // { path: '/admin/reports', icon: 'fa-chart-bar', label: 'Reports' },
         { path: '/admin/access', icon: 'fa-shield-alt', label: 'Role Access Management' },
-        // { path: '/admin/settings', icon: 'fa-cog', label: 'Settings' },
-        // { path: '/admin/logs', icon: 'fa-history', label: 'Log Activity' }
+        { path: '/admin/activity-logs', icon: 'fa-history', label: 'Activity Logs' },
+        // { path: '/admin/settings', icon: 'fa-cog', label: 'Settings' }
     ];
 
     const renderMenuItem = (item) => {
@@ -3011,6 +3038,454 @@ function LetterTemplatePage() {
     );
 }
 
+function ActivityLogPage() {
+    const { showToast } = useToast();
+    const [activities, setActivities] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
+    const [pagination, setPagination] = useState({
+        current_page: 1,
+        last_page: 1,
+        per_page: 15,
+        total: 0
+    });
+    const [search, setSearch] = useState('');
+    const [logNameFilter, setLogNameFilter] = useState('');
+    const [eventFilter, setEventFilter] = useState('');
+    const [dateFromFilter, setDateFromFilter] = useState('');
+    const [dateToFilter, setDateToFilter] = useState('');
+    const [logNames, setLogNames] = useState([]);
+    const [events, setEvents] = useState([]);
+    const [showDetailModal, setShowDetailModal] = useState(false);
+    const [showCleanupModal, setShowCleanupModal] = useState(false);
+    const [selectedActivity, setSelectedActivity] = useState(null);
+    const [cleanupDays, setCleanupDays] = useState(30);
+    const [cleaning, setCleaning] = useState(false);
+
+    const fetchActivities = async (page = 1, searchQuery = search, logName = logNameFilter, event = eventFilter, dateFrom = dateFromFilter, dateTo = dateToFilter) => {
+        try {
+            setLoading(true);
+            setError(null);
+            const params = {
+                per_page: pagination.per_page,
+                page: page,
+            };
+            if (searchQuery) params.search = searchQuery;
+            if (logName) params.log_name = logName;
+            if (event) params.event = event;
+            if (dateFrom) params.date_from = dateFrom;
+            if (dateTo) params.date_to = dateTo;
+
+            const response = await activityLogAPI.getAll(params);
+
+            if (response.success) {
+                setActivities(response.data.activities);
+                setPagination(response.data.pagination);
+            }
+        } catch (err) {
+            const errorMessage = err.response?.data?.message || 'Failed to load activity logs';
+            setError(errorMessage);
+            showToast(errorMessage, 'error');
+            console.error('Error fetching activities:', err);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const fetchFilters = async () => {
+        try {
+            const [logNamesRes, eventsRes] = await Promise.all([
+                activityLogAPI.getLogNames(),
+                activityLogAPI.getEvents()
+            ]);
+
+            if (logNamesRes.success) {
+                setLogNames(logNamesRes.data.log_names);
+            }
+            if (eventsRes.success) {
+                setEvents(eventsRes.data.events);
+            }
+        } catch (err) {
+            console.error('Error fetching filters:', err);
+        }
+    };
+
+    React.useEffect(() => {
+        fetchFilters();
+        fetchActivities();
+    }, []);
+
+    const handleSearch = (e) => {
+        e.preventDefault();
+        fetchActivities(1, search, logNameFilter, eventFilter, dateFromFilter, dateToFilter);
+    };
+
+    const handleFilterChange = () => {
+        fetchActivities(1, search, logNameFilter, eventFilter, dateFromFilter, dateToFilter);
+    };
+
+    const handleClearFilters = () => {
+        setSearch('');
+        setLogNameFilter('');
+        setEventFilter('');
+        setDateFromFilter('');
+        setDateToFilter('');
+        fetchActivities(1, '', '', '', '', '');
+    };
+
+    const handleViewDetail = (activity) => {
+        setSelectedActivity(activity);
+        setShowDetailModal(true);
+    };
+
+    const handleCleanup = async () => {
+        setCleaning(true);
+        try {
+            const response = await activityLogAPI.cleanup(cleanupDays);
+            if (response.success) {
+                setShowCleanupModal(false);
+                fetchActivities(pagination.current_page);
+                showToast(response.message, 'success');
+            }
+        } catch (err) {
+            const errorMessage = err.response?.data?.message || 'Failed to cleanup logs';
+            showToast(errorMessage, 'error');
+        } finally {
+            setCleaning(false);
+        }
+    };
+
+    const formatDate = (dateString) => {
+        if (!dateString) return 'N/A';
+        const date = new Date(dateString);
+        return date.toLocaleString();
+    };
+
+    const getEventBadgeColor = (event) => {
+        switch (event) {
+            case 'created':
+                return 'bg-green-100 text-green-800';
+            case 'updated':
+                return 'bg-blue-100 text-blue-800';
+            case 'deleted':
+                return 'bg-red-100 text-red-800';
+            default:
+                return 'bg-gray-100 text-gray-800';
+        }
+    };
+
+    return (
+        <div className="space-y-6">
+            <div className="bg-white rounded-lg shadow-sm border border-gray-200">
+                <div className="p-6 border-b border-gray-200">
+                    <div className="flex items-center justify-between">
+                        <div>
+                            <h2 className="text-xl font-bold text-gray-800">Activity Logs</h2>
+                            <p className="text-sm text-gray-600 mt-1">View system activity and user actions</p>
+                        </div>
+                        <button
+                            onClick={() => setShowCleanupModal(true)}
+                            className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 flex items-center space-x-2"
+                        >
+                            <i className="fas fa-trash-alt"></i>
+                            <span>Cleanup Old Logs</span>
+                        </button>
+                    </div>
+
+                    {error && (
+                        <div className="mt-4 p-4 bg-red-50 border border-red-200 text-red-700 rounded-lg">
+                            <i className="fas fa-exclamation-circle mr-2"></i>
+                            {error}
+                        </div>
+                    )}
+
+                    <div className="mt-6 space-y-4">
+                        <form onSubmit={handleSearch} className="flex space-x-2">
+                            <input
+                                type="text"
+                                value={search}
+                                onChange={(e) => setSearch(e.target.value)}
+                                placeholder="Search logs..."
+                                className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            />
+                            <button
+                                type="submit"
+                                className="px-6 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700"
+                            >
+                                <i className="fas fa-search"></i>
+                            </button>
+                        </form>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Log Name</label>
+                                <select
+                                    value={logNameFilter}
+                                    onChange={(e) => { setLogNameFilter(e.target.value); handleFilterChange(); }}
+                                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                >
+                                    <option value="">All Logs</option>
+                                    {logNames.map(name => (
+                                        <option key={name} value={name}>{name}</option>
+                                    ))}
+                                </select>
+                            </div>
+
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Event</label>
+                                <select
+                                    value={eventFilter}
+                                    onChange={(e) => { setEventFilter(e.target.value); handleFilterChange(); }}
+                                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                >
+                                    <option value="">All Events</option>
+                                    {events.map(event => (
+                                        <option key={event} value={event}>{event}</option>
+                                    ))}
+                                </select>
+                            </div>
+
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">From Date</label>
+                                <input
+                                    type="date"
+                                    value={dateFromFilter}
+                                    onChange={(e) => { setDateFromFilter(e.target.value); handleFilterChange(); }}
+                                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                />
+                            </div>
+
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">To Date</label>
+                                <input
+                                    type="date"
+                                    value={dateToFilter}
+                                    onChange={(e) => { setDateToFilter(e.target.value); handleFilterChange(); }}
+                                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                />
+                            </div>
+                        </div>
+
+                        {(search || logNameFilter || eventFilter || dateFromFilter || dateToFilter) && (
+                            <button
+                                onClick={handleClearFilters}
+                                className="text-sm text-blue-600 hover:text-blue-700"
+                            >
+                                <i className="fas fa-times mr-1"></i> Clear Filters
+                            </button>
+                        )}
+                    </div>
+                </div>
+
+                <div className="overflow-x-auto">
+                    {loading ? (
+                        <div className="flex justify-center items-center py-12">
+                            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+                        </div>
+                    ) : activities.length === 0 ? (
+                        <div className="text-center py-12">
+                            <i className="fas fa-history text-4xl text-gray-400 mb-4"></i>
+                            <p className="text-gray-500">No activity logs found</p>
+                        </div>
+                    ) : (
+                        <table className="min-w-full divide-y divide-gray-200">
+                            <thead className="bg-gray-50">
+                                <tr>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Timestamp</th>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Log Name</th>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Event</th>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Description</th>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Causer</th>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody className="bg-white divide-y divide-gray-200">
+                                {activities.map((activity) => (
+                                    <tr key={activity.id} className="hover:bg-gray-50">
+                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                                            {formatDate(activity.created_at)}
+                                        </td>
+                                        <td className="px-6 py-4 whitespace-nowrap">
+                                            <span className="px-2 py-1 text-xs font-medium bg-purple-100 text-purple-800 rounded">
+                                                {activity.log_name || 'default'}
+                                            </span>
+                                        </td>
+                                        <td className="px-6 py-4 whitespace-nowrap">
+                                            <span className={`px-2 py-1 text-xs font-medium rounded ${getEventBadgeColor(activity.event)}`}>
+                                                {activity.event || 'N/A'}
+                                            </span>
+                                        </td>
+                                        <td className="px-6 py-4 text-sm text-gray-900 max-w-md">
+                                            <p className="line-clamp-2">{activity.description}</p>
+                                        </td>
+                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                                            {activity.causer ? activity.causer.name : 'System'}
+                                        </td>
+                                        <td className="px-6 py-4 whitespace-nowrap text-sm">
+                                            <button
+                                                onClick={() => handleViewDetail(activity)}
+                                                className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg"
+                                                title="View Details"
+                                            >
+                                                <i className="fas fa-eye"></i>
+                                            </button>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    )}
+                </div>
+
+                {pagination.last_page > 1 && (
+                    <div className="px-6 py-4 border-t border-gray-200 flex items-center justify-between">
+                        <div className="text-sm text-gray-600">
+                            Showing {(pagination.current_page - 1) * pagination.per_page + 1} to{' '}
+                            {Math.min(pagination.current_page * pagination.per_page, pagination.total)} of{' '}
+                            {pagination.total} logs
+                        </div>
+                        <div className="flex space-x-2">
+                            <button
+                                onClick={() => fetchActivities(pagination.current_page - 1)}
+                                disabled={pagination.current_page === 1}
+                                className="px-4 py-2 border border-gray-300 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+                            >
+                                Previous
+                            </button>
+                            <button
+                                onClick={() => fetchActivities(pagination.current_page + 1)}
+                                disabled={pagination.current_page === pagination.last_page}
+                                className="px-4 py-2 border border-gray-300 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+                            >
+                                Next
+                            </button>
+                        </div>
+                    </div>
+                )}
+            </div>
+
+            {/* Detail Modal */}
+            {showDetailModal && selectedActivity && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+                    <div className="bg-white rounded-lg shadow-xl max-w-3xl w-full max-h-[90vh] overflow-y-auto">
+                        <div className="p-6 border-b border-gray-200">
+                            <h3 className="text-lg font-bold text-gray-800">Activity Log Details</h3>
+                        </div>
+
+                        <div className="p-6 space-y-4">
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">ID</label>
+                                <p className="text-sm text-gray-900">{selectedActivity.id}</p>
+                            </div>
+
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Log Name</label>
+                                <p className="text-sm text-gray-900">{selectedActivity.log_name || 'default'}</p>
+                            </div>
+
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Event</label>
+                                <span className={`px-2 py-1 text-xs font-medium rounded ${getEventBadgeColor(selectedActivity.event)}`}>
+                                    {selectedActivity.event || 'N/A'}
+                                </span>
+                            </div>
+
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
+                                <p className="text-sm text-gray-900">{selectedActivity.description}</p>
+                            </div>
+
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Causer</label>
+                                <p className="text-sm text-gray-900">
+                                    {selectedActivity.causer ? `${selectedActivity.causer.name} (${selectedActivity.causer.type})` : 'System'}
+                                </p>
+                            </div>
+
+                            {selectedActivity.subject && (
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Subject</label>
+                                    <p className="text-sm text-gray-900">
+                                        {selectedActivity.subject.type} (ID: {selectedActivity.subject.id})
+                                    </p>
+                                </div>
+                            )}
+
+                            {selectedActivity.properties && Object.keys(selectedActivity.properties).length > 0 && (
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Properties</label>
+                                    <pre className="text-xs bg-gray-50 p-3 rounded border border-gray-200 overflow-x-auto">
+                                        {JSON.stringify(selectedActivity.properties, null, 2)}
+                                    </pre>
+                                </div>
+                            )}
+
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Timestamp</label>
+                                <p className="text-sm text-gray-900">{formatDate(selectedActivity.created_at)}</p>
+                            </div>
+                        </div>
+
+                        <div className="p-6 border-t border-gray-200 flex justify-end">
+                            <button
+                                onClick={() => setShowDetailModal(false)}
+                                className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700"
+                            >
+                                Close
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Cleanup Modal */}
+            {showCleanupModal && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+                    <div className="bg-white rounded-lg shadow-xl max-w-md w-full">
+                        <div className="p-6">
+                            <div className="flex items-center justify-center w-12 h-12 mx-auto bg-red-100 rounded-full mb-4">
+                                <i className="fas fa-trash-alt text-red-600 text-xl"></i>
+                            </div>
+                            <h3 className="text-lg font-bold text-gray-800 text-center mb-2">Cleanup Old Activity Logs</h3>
+                            <p className="text-gray-600 text-center mb-6">
+                                Delete activity logs older than the specified number of days. This action cannot be undone.
+                            </p>
+
+                            <div className="mb-4">
+                                <label className="block text-sm font-medium text-gray-700 mb-2">Delete logs older than (days)</label>
+                                <input
+                                    type="number"
+                                    value={cleanupDays}
+                                    onChange={(e) => setCleanupDays(parseInt(e.target.value) || 30)}
+                                    min="1"
+                                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                />
+                            </div>
+
+                            <div className="flex space-x-3">
+                                <button
+                                    onClick={() => setShowCleanupModal(false)}
+                                    className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
+                                    disabled={cleaning}
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    onClick={handleCleanup}
+                                    disabled={cleaning}
+                                    className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                                >
+                                    {cleaning ? 'Cleaning...' : 'Cleanup'}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+        </div>
+    );
+}
+
 function AccessManagementPage() {
     const [roles, setRoles] = React.useState([]);
     const [groupedPermissions, setGroupedPermissions] = React.useState({});
@@ -3561,6 +4036,7 @@ function AdminApp() {
                                         <Route path="residents" element={<ResidentsPage />} />
                                         <Route path="reports" element={<ReportsPage />} />
                                         <Route path="access" element={<AccessManagementPage />} />
+                                        <Route path="activity-logs" element={<ActivityLogPage />} />
                                         <Route path="settings" element={<SettingsPage />} />
                                         <Route path="logs" element={<LogsPage />} />
                                         <Route path="*" element={<Navigate to="/admin/dashboard" replace />} />
