@@ -7,6 +7,7 @@ use App\Http\Controllers\Api\PermissionController;
 use App\Http\Controllers\Api\LetterCategoryController;
 use App\Http\Controllers\Api\LetterTemplateController;
 use App\Http\Controllers\Api\ActivityLogController;
+use App\Http\Controllers\Api\PendudukController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -44,6 +45,10 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('activity-logs/events', [ActivityLogController::class, 'events']);
     Route::post('activity-logs/cleanup', [ActivityLogController::class, 'cleanup']);
     Route::apiResource('activity-logs', ActivityLogController::class)->only(['index', 'show']);
+
+    // Penduduk Management
+    Route::get('penduduks/statistics', [PendudukController::class, 'statistics']);
+    Route::apiResource('penduduks', PendudukController::class);
 
     // Legacy route for compatibility
     Route::get('/user', function (Request $request) {

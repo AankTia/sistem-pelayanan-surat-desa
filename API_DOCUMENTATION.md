@@ -2444,3 +2444,560 @@ curl -X POST http://localhost:8000/api/v1/activity-logs/cleanup \
 - Timestamps are stored in UTC and include milliseconds
 - The system uses Laravel's polymorphic relationships for causer and subject
 
+---
+
+## Penduduk (Resident) Management Endpoints
+
+All penduduk management endpoints require authentication. Include the Bearer token in the Authorization header.
+
+### 1. Get All Penduduk
+
+**Endpoint:** `GET /api/v1/penduduks`
+
+**Description:** Retrieve a paginated list of all penduduk (residents) with search and filtering
+
+**Request Headers:**
+```
+Authorization: Bearer {token}
+Accept: application/json
+```
+
+**Query Parameters:**
+- `per_page` (optional): Number of items per page (default: 15)
+- `page` (optional): Page number (default: 1)
+- `search` (optional): Search by NIK, KK, nama (name), or alamat (address)
+- `status_tinggal` (optional): Filter by residence status (Tetap, Sementara, Pindah, Meninggal)
+
+**Example Request:**
+```bash
+curl -X GET "http://localhost:8000/api/v1/penduduks?per_page=10&search=john&status_tinggal=Tetap" \
+  -H "Authorization: Bearer {token}" \
+  -H "Accept: application/json"
+```
+
+**Success Response (200):**
+```json
+{
+  "success": true,
+  "data": {
+    "penduduks": [
+      {
+        "id": "550e8400-e29b-41d4-a716-446655440000",
+        "nik": "3201234567890001",
+        "kk": "1234567890123456",
+        "nama": "John Doe",
+        "tempat_lahir": "Jakarta",
+        "tanggal_lahir": "1990-01-15",
+        "jenis_kelamin": "Laki-laki",
+        "agama": "Islam",
+        "status_perkawinan": "Kawin",
+        "pekerjaan": "Pegawai Swasta",
+        "pendidikan_terakhir": "S1",
+        "kewarganegaraan": "WNI",
+        "alamat": "Jl. Merdeka No. 123",
+        "rt": "01",
+        "rw": "02",
+        "dusun": "Manis",
+        "kelurahan": "Cijoho",
+        "kecamatan": "Kuningan",
+        "kabupaten": "Kuningan",
+        "provinsi": "Jawa Barat",
+        "status_tinggal": "Tetap",
+        "tanggal_pindah": null,
+        "tanggal_meninggal": null,
+        "catatan": null,
+        "created_at": "2025-11-03T10:00:00.000000Z",
+        "updated_at": "2025-11-03T10:00:00.000000Z",
+        "deleted_at": null
+      }
+    ],
+    "pagination": {
+      "current_page": 1,
+      "last_page": 10,
+      "per_page": 10,
+      "total": 100
+    }
+  }
+}
+```
+
+---
+
+### 2. Get Single Penduduk
+
+**Endpoint:** `GET /api/v1/penduduks/{id}`
+
+**Description:** Retrieve detailed information about a specific penduduk
+
+**Request Headers:**
+```
+Authorization: Bearer {token}
+Accept: application/json
+```
+
+**URL Parameters:**
+- `id`: Penduduk UUID
+
+**Example Request:**
+```bash
+curl -X GET http://localhost:8000/api/v1/penduduks/550e8400-e29b-41d4-a716-446655440000 \
+  -H "Authorization: Bearer {token}" \
+  -H "Accept: application/json"
+```
+
+**Success Response (200):**
+```json
+{
+  "success": true,
+  "data": {
+    "penduduk": {
+      "id": "550e8400-e29b-41d4-a716-446655440000",
+      "nik": "3201234567890001",
+      "kk": "1234567890123456",
+      "nama": "John Doe",
+      "tempat_lahir": "Jakarta",
+      "tanggal_lahir": "1990-01-15",
+      "jenis_kelamin": "Laki-laki",
+      "agama": "Islam",
+      "status_perkawinan": "Kawin",
+      "pekerjaan": "Pegawai Swasta",
+      "pendidikan_terakhir": "S1",
+      "kewarganegaraan": "WNI",
+      "alamat": "Jl. Merdeka No. 123",
+      "rt": "01",
+      "rw": "02",
+      "dusun": "Manis",
+      "kelurahan": "Cijoho",
+      "kecamatan": "Kuningan",
+      "kabupaten": "Kuningan",
+      "provinsi": "Jawa Barat",
+      "status_tinggal": "Tetap",
+      "tanggal_pindah": null,
+      "tanggal_meninggal": null,
+      "catatan": null,
+      "created_at": "2025-11-03T10:00:00.000000Z",
+      "updated_at": "2025-11-03T10:00:00.000000Z"
+    }
+  }
+}
+```
+
+**Error Response - Not Found (404):**
+```json
+{
+  "success": false,
+  "message": "Penduduk not found"
+}
+```
+
+---
+
+### 3. Create Penduduk
+
+**Endpoint:** `POST /api/v1/penduduks`
+
+**Description:** Create a new penduduk record
+
+**Request Headers:**
+```
+Authorization: Bearer {token}
+Content-Type: application/json
+Accept: application/json
+```
+
+**Request Body:**
+```json
+{
+  "nik": "3201234567890001",
+  "kk": "1234567890123456",
+  "nama": "John Doe",
+  "tempat_lahir": "Jakarta",
+  "tanggal_lahir": "1990-01-15",
+  "jenis_kelamin": "Laki-laki",
+  "agama": "Islam",
+  "status_perkawinan": "Kawin",
+  "pekerjaan": "Pegawai Swasta",
+  "pendidikan_terakhir": "S1",
+  "kewarganegaraan": "WNI",
+  "alamat": "Jl. Merdeka No. 123",
+  "rt": "01",
+  "rw": "02",
+  "dusun": "Manis",
+  "kelurahan": "Cijoho",
+  "kecamatan": "Kuningan",
+  "kabupaten": "Kuningan",
+  "provinsi": "Jawa Barat",
+  "status_tinggal": "Tetap",
+  "tanggal_pindah": null,
+  "tanggal_meninggal": null,
+  "catatan": "Catatan tambahan"
+}
+```
+
+**Field Requirements:**
+- `nik` (required): National ID number, exactly 16 digits, must be unique
+- `kk` (optional): Family card number, exactly 16 digits
+- `nama` (required): Full name, max 100 characters
+- `tempat_lahir` (required): Place of birth, max 100 characters
+- `tanggal_lahir` (required): Date of birth in YYYY-MM-DD format
+- `jenis_kelamin` (required): Gender - either "Laki-laki" or "Perempuan"
+- `agama` (required): Religion - Islam, Kristen, Katolik, Hindu, Buddha, Konghucu, or Lainnya
+- `status_perkawinan` (required): Marital status - Belum Kawin, Kawin, Cerai Hidup, or Cerai Mati
+- `pekerjaan` (optional): Occupation, max 100 characters
+- `pendidikan_terakhir` (optional): Last education level, max 50 characters
+- `kewarganegaraan` (optional): Citizenship, max 50 characters, defaults to "WNI"
+- `alamat` (required): Full address
+- `rt` (optional): RT number, max 5 characters
+- `rw` (optional): RW number, max 5 characters
+- `dusun` (optional): Hamlet name, max 100 characters
+- `kelurahan` (optional): Village/ward name, max 100 characters
+- `kecamatan` (optional): District name, max 100 characters
+- `kabupaten` (optional): Regency/city name, max 100 characters
+- `provinsi` (optional): Province name, max 100 characters
+- `status_tinggal` (optional): Residence status - Tetap, Sementara, Pindah, or Meninggal
+- `tanggal_pindah` (optional): Moving date in YYYY-MM-DD format (only if status_tinggal is "Pindah")
+- `tanggal_meninggal` (optional): Death date in YYYY-MM-DD format (only if status_tinggal is "Meninggal")
+- `catatan` (optional): Additional notes
+
+**Example Request:**
+```bash
+curl -X POST http://localhost:8000/api/v1/penduduks \
+  -H "Authorization: Bearer {token}" \
+  -H "Content-Type: application/json" \
+  -H "Accept: application/json" \
+  -d '{
+    "nik": "3201234567890001",
+    "kk": "1234567890123456",
+    "nama": "John Doe",
+    "tempat_lahir": "Jakarta",
+    "tanggal_lahir": "1990-01-15",
+    "jenis_kelamin": "Laki-laki",
+    "agama": "Islam",
+    "status_perkawinan": "Kawin",
+    "pekerjaan": "Pegawai Swasta",
+    "pendidikan_terakhir": "S1",
+    "kewarganegaraan": "WNI",
+    "alamat": "Jl. Merdeka No. 123",
+    "rt": "01",
+    "rw": "02",
+    "dusun": "Manis",
+    "kelurahan": "Cijoho",
+    "kecamatan": "Kuningan",
+    "kabupaten": "Kuningan",
+    "provinsi": "Jawa Barat",
+    "status_tinggal": "Tetap"
+  }'
+```
+
+**Success Response (201):**
+```json
+{
+  "success": true,
+  "message": "Penduduk created successfully",
+  "data": {
+    "penduduk": {
+      "id": "550e8400-e29b-41d4-a716-446655440000",
+      "nik": "3201234567890001",
+      "kk": "1234567890123456",
+      "nama": "John Doe",
+      "tempat_lahir": "Jakarta",
+      "tanggal_lahir": "1990-01-15",
+      "jenis_kelamin": "Laki-laki",
+      "agama": "Islam",
+      "status_perkawinan": "Kawin",
+      "pekerjaan": "Pegawai Swasta",
+      "pendidikan_terakhir": "S1",
+      "kewarganegaraan": "WNI",
+      "alamat": "Jl. Merdeka No. 123",
+      "rt": "01",
+      "rw": "02",
+      "dusun": "Manis",
+      "kelurahan": "Cijoho",
+      "kecamatan": "Kuningan",
+      "kabupaten": "Kuningan",
+      "provinsi": "Jawa Barat",
+      "status_tinggal": "Tetap",
+      "created_at": "2025-11-03T12:30:00.000000Z"
+    }
+  }
+}
+```
+
+**Error Response - Validation Failed (422):**
+```json
+{
+  "success": false,
+  "message": "Validation failed",
+  "errors": {
+    "nik": ["The nik has already been taken."],
+    "nama": ["The nama field is required."],
+    "jenis_kelamin": ["The selected jenis kelamin is invalid."]
+  }
+}
+```
+
+---
+
+### 4. Update Penduduk
+
+**Endpoint:** `PUT /api/v1/penduduks/{id}` or `PATCH /api/v1/penduduks/{id}`
+
+**Description:** Update an existing penduduk record
+
+**Request Headers:**
+```
+Authorization: Bearer {token}
+Content-Type: application/json
+Accept: application/json
+```
+
+**URL Parameters:**
+- `id`: Penduduk UUID
+
+**Request Body:** (all fields optional, only include fields to update)
+```json
+{
+  "nama": "John Doe Updated",
+  "pekerjaan": "Wiraswasta",
+  "alamat": "Jl. Merdeka No. 456",
+  "status_tinggal": "Tetap"
+}
+```
+
+**Example Request:**
+```bash
+curl -X PUT http://localhost:8000/api/v1/penduduks/550e8400-e29b-41d4-a716-446655440000 \
+  -H "Authorization: Bearer {token}" \
+  -H "Content-Type: application/json" \
+  -H "Accept: application/json" \
+  -d '{
+    "nama": "John Doe Updated",
+    "pekerjaan": "Wiraswasta"
+  }'
+```
+
+**Success Response (200):**
+```json
+{
+  "success": true,
+  "message": "Penduduk updated successfully",
+  "data": {
+    "penduduk": {
+      "id": "550e8400-e29b-41d4-a716-446655440000",
+      "nik": "3201234567890001",
+      "kk": "1234567890123456",
+      "nama": "John Doe Updated",
+      "tempat_lahir": "Jakarta",
+      "tanggal_lahir": "1990-01-15",
+      "jenis_kelamin": "Laki-laki",
+      "agama": "Islam",
+      "status_perkawinan": "Kawin",
+      "pekerjaan": "Wiraswasta",
+      "pendidikan_terakhir": "S1",
+      "kewarganegaraan": "WNI",
+      "alamat": "Jl. Merdeka No. 123",
+      "rt": "01",
+      "rw": "02",
+      "dusun": "Manis",
+      "kelurahan": "Cijoho",
+      "kecamatan": "Kuningan",
+      "kabupaten": "Kuningan",
+      "provinsi": "Jawa Barat",
+      "status_tinggal": "Tetap",
+      "updated_at": "2025-11-03T14:30:00.000000Z"
+    }
+  }
+}
+```
+
+**Error Response - Not Found (404):**
+```json
+{
+  "success": false,
+  "message": "Penduduk not found"
+}
+```
+
+---
+
+### 5. Delete Penduduk
+
+**Endpoint:** `DELETE /api/v1/penduduks/{id}`
+
+**Description:** Delete a penduduk record (soft delete)
+
+**Request Headers:**
+```
+Authorization: Bearer {token}
+Accept: application/json
+```
+
+**URL Parameters:**
+- `id`: Penduduk UUID
+
+**Example Request:**
+```bash
+curl -X DELETE http://localhost:8000/api/v1/penduduks/550e8400-e29b-41d4-a716-446655440000 \
+  -H "Authorization: Bearer {token}" \
+  -H "Accept: application/json"
+```
+
+**Success Response (200):**
+```json
+{
+  "success": true,
+  "message": "Penduduk deleted successfully"
+}
+```
+
+**Error Response - Not Found (404):**
+```json
+{
+  "success": false,
+  "message": "Penduduk not found"
+}
+```
+
+---
+
+### 6. Get Penduduk Statistics
+
+**Endpoint:** `GET /api/v1/penduduks/statistics`
+
+**Description:** Get statistical summary of penduduk data
+
+**Request Headers:**
+```
+Authorization: Bearer {token}
+Accept: application/json
+```
+
+**Example Request:**
+```bash
+curl -X GET http://localhost:8000/api/v1/penduduks/statistics \
+  -H "Authorization: Bearer {token}" \
+  -H "Accept: application/json"
+```
+
+**Success Response (200):**
+```json
+{
+  "success": true,
+  "data": {
+    "total": 100,
+    "jenis_kelamin": {
+      "laki_laki": 52,
+      "perempuan": 48
+    },
+    "status_tinggal": {
+      "tetap": 85,
+      "sementara": 10,
+      "pindah": 3,
+      "meninggal": 2
+    }
+  }
+}
+```
+
+---
+
+## Penduduk Testing Examples
+
+### Complete CRUD Flow:
+
+```bash
+# 1. Login and get token
+TOKEN=$(curl -s -X POST http://localhost:8000/api/v1/login \
+  -H "Content-Type: application/json" \
+  -d '{"email":"admin@example.com","password":"password"}' \
+  | jq -r '.data.token')
+
+# 2. Get all penduduk (paginated)
+curl -X GET "http://localhost:8000/api/v1/penduduks?per_page=10" \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Accept: application/json"
+
+# 3. Search penduduk by name
+curl -X GET "http://localhost:8000/api/v1/penduduks?search=john" \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Accept: application/json"
+
+# 4. Filter by status_tinggal
+curl -X GET "http://localhost:8000/api/v1/penduduks?status_tinggal=Tetap" \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Accept: application/json"
+
+# 5. Create new penduduk
+curl -X POST http://localhost:8000/api/v1/penduduks \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "nik": "3201234567890001",
+    "kk": "1234567890123456",
+    "nama": "John Doe",
+    "tempat_lahir": "Jakarta",
+    "tanggal_lahir": "1990-01-15",
+    "jenis_kelamin": "Laki-laki",
+    "agama": "Islam",
+    "status_perkawinan": "Kawin",
+    "pekerjaan": "Pegawai Swasta",
+    "pendidikan_terakhir": "S1",
+    "kewarganegaraan": "WNI",
+    "alamat": "Jl. Merdeka No. 123",
+    "rt": "01",
+    "rw": "02",
+    "dusun": "Manis",
+    "kelurahan": "Cijoho",
+    "kecamatan": "Kuningan",
+    "kabupaten": "Kuningan",
+    "provinsi": "Jawa Barat",
+    "status_tinggal": "Tetap"
+  }'
+
+# 6. Get single penduduk
+curl -X GET http://localhost:8000/api/v1/penduduks/550e8400-e29b-41d4-a716-446655440000 \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Accept: application/json"
+
+# 7. Update penduduk
+curl -X PUT http://localhost:8000/api/v1/penduduks/550e8400-e29b-41d4-a716-446655440000 \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "nama": "John Doe Updated",
+    "pekerjaan": "Wiraswasta"
+  }'
+
+# 8. Get statistics
+curl -X GET http://localhost:8000/api/v1/penduduks/statistics \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Accept: application/json"
+
+# 9. Delete penduduk
+curl -X DELETE http://localhost:8000/api/v1/penduduks/550e8400-e29b-41d4-a716-446655440000 \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Accept: application/json"
+```
+
+---
+
+## Notes on Penduduk Management
+
+- Penduduk IDs are UUIDs, not auto-incrementing integers
+- NIK (National ID) must be exactly 16 digits and unique across all penduduk
+- KK (Family Card) must be exactly 16 digits when provided
+- Penduduk records use soft deletes (can be recovered from `deleted_at` column)
+- All changes to penduduk data are automatically logged via Spatie Activity Log
+- Search functionality searches across NIK, KK, nama (name), and alamat (address) fields
+- Status tinggal options:
+  - `Tetap` - Permanent resident
+  - `Sementara` - Temporary resident
+  - `Pindah` - Moved away (requires `tanggal_pindah`)
+  - `Meninggal` - Deceased (requires `tanggal_meninggal`)
+- Gender options: `Laki-laki` (Male) or `Perempuan` (Female)
+- Religion options: Islam, Kristen, Katolik, Hindu, Buddha, Konghucu, Lainnya
+- Marital status options: Belum Kawin (Single), Kawin (Married), Cerai Hidup (Divorced), Cerai Mati (Widowed)
+- The statistics endpoint provides real-time counts by gender and residence status
+- All date fields must be in YYYY-MM-DD format
+- Timestamps are stored in UTC ISO 8601 format
+

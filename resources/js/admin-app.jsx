@@ -246,6 +246,38 @@ const activityLogAPI = {
     },
 };
 
+const pendudukAPI = {
+    getAll: async (params = {}) => {
+        const response = await api.get('/penduduks', { params });
+        return response.data;
+    },
+
+    getById: async (id) => {
+        const response = await api.get(`/penduduks/${id}`);
+        return response.data;
+    },
+
+    create: async (pendudukData) => {
+        const response = await api.post('/penduduks', pendudukData);
+        return response.data;
+    },
+
+    update: async (id, pendudukData) => {
+        const response = await api.put(`/penduduks/${id}`, pendudukData);
+        return response.data;
+    },
+
+    delete: async (id) => {
+        const response = await api.delete(`/penduduks/${id}`);
+        return response.data;
+    },
+
+    getStatistics: async () => {
+        const response = await api.get('/penduduks/statistics');
+        return response.data;
+    },
+};
+
 // ==================== TOAST NOTIFICATION SYSTEM ====================
 const ToastContext = createContext();
 
@@ -499,6 +531,7 @@ function Sidebar({ isOpen, toggleSidebar }) {
         { path: '/admin/dashboard', icon: 'fa-home', label: 'Dashboard' },
         // { path: '/admin/charts', icon: 'fa-chart-line', label: 'Grafik Aktivitas' },
         // { path: '/admin/requests', icon: 'fa-file-alt', label: 'Permohonan Surat', badge: 5 },
+        { path: '/admin/residents', icon: 'fa-users', label: 'Penduduk' },
         {
             key: 'letter-management',
             icon: 'fa-file-alt',
@@ -509,7 +542,6 @@ function Sidebar({ isOpen, toggleSidebar }) {
             ]
         },
         { path: '/admin/users', icon: 'fa-users-cog', label: 'User Management' },
-        // { path: '/admin/residents', icon: 'fa-users', label: 'Penduduk' },
         // { path: '/admin/reports', icon: 'fa-chart-bar', label: 'Reports' },
         { path: '/admin/access', icon: 'fa-shield-alt', label: 'Role Access Management' },
         { path: '/admin/activity-logs', icon: 'fa-history', label: 'Activity Logs' },
@@ -1617,43 +1649,270 @@ function UsersPage() {
 }
 
 function ResidentsPage() {
+    const { showToast } = useToast();
+    const [penduduks, setPenduduks] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [showModal, setShowModal] = useState(false);
+    const [showDetailModal, setShowDetailModal] = useState(false);
+    const [editingPenduduk, setEditingPenduduk] = useState(null);
+    const [viewingPenduduk, setViewingPenduduk] = useState(null);
+    const [searchTerm, setSearchTerm] = useState('');
+    const [statusFilter, setStatusFilter] = useState('');
+    const [pagination, setPagination] = useState({
+        current_page: 1,
+        last_page: 1,
+        per_page: 15,
+        total: 0,
+    });
+
+    const [formData, setFormData] = useState({
+        nik: '',
+        kk: '',
+        nama: '',
+        tempat_lahir: '',
+        tanggal_lahir: '',
+        jenis_kelamin: 'Laki-laki',
+        agama: 'Islam',
+        status_perkawinan: 'Belum Kawin',
+        pekerjaan: '',
+        pendidikan_terakhir: '',
+        kewarganegaraan: 'WNI',
+        alamat: '',
+        rt: '',
+        rw: '',
+        dusun: '',
+        kelurahan: '',
+        kecamatan: '',
+        kabupaten: '',
+        provinsi: '',
+        status_tinggal: 'Tetap',
+        tanggal_pindah: '',
+        tanggal_meninggal: '',
+        catatan: '',
+    });
+
+    const fetchPenduduks = async () => {
+        try {
+            setLoading(true);
+            const params = {
+                page: pagination.current_page,
+                per_page: pagination.per_page,
+                search: searchTerm,
+                status_tinggal: statusFilter,
+            };
+            const response = await pendudukAPI.getAll(params);
+            setPenduduks(response.data.penduduks);
+            setPagination(response.data.pagination);
+        } catch (error) {
+            showToast('Failed to load penduduk data', 'error');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    React.useEffect(() => {
+        fetchPenduduks();
+    }, [pagination.current_page, searchTerm, statusFilter]);
+
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+        try {
+            if (editingPenduduk) {
+                await pendudukAPI.update(editingPenduduk.id, formData);
+                showToast('Penduduk updated successfully', 'success');
+            } else {
+                await pendudukAPI.create(formData);
+                showToast('Penduduk created successfully', 'success');
+            }
+            setShowModal(false);
+            resetForm();
+            fetchPenduduks();
+        } catch (error) {
+            const errorMessage = error.response?.data?.message || 'Failed to save penduduk';
+            showToast(errorMessage, 'error');
+        }
+    };
+
+    const handleEdit = (penduduk) => {
+        setEditingPenduduk(penduduk);
+        setFormData({
+            nik: penduduk.nik || '',
+            kk: penduduk.kk || '',
+            nama: penduduk.nama || '',
+            tempat_lahir: penduduk.tempat_lahir || '',
+            tanggal_lahir: penduduk.tanggal_lahir || '',
+            jenis_kelamin: penduduk.jenis_kelamin || 'Laki-laki',
+            agama: penduduk.agama || 'Islam',
+            status_perkawinan: penduduk.status_perkawinan || 'Belum Kawin',
+            pekerjaan: penduduk.pekerjaan || '',
+            pendidikan_terakhir: penduduk.pendidikan_terakhir || '',
+            kewarganegaraan: penduduk.kewarganegaraan || 'WNI',
+            alamat: penduduk.alamat || '',
+            rt: penduduk.rt || '',
+            rw: penduduk.rw || '',
+            dusun: penduduk.dusun || '',
+            kelurahan: penduduk.kelurahan || '',
+            kecamatan: penduduk.kecamatan || '',
+            kabupaten: penduduk.kabupaten || '',
+            provinsi: penduduk.provinsi || '',
+            status_tinggal: penduduk.status_tinggal || 'Tetap',
+            tanggal_pindah: penduduk.tanggal_pindah || '',
+            tanggal_meninggal: penduduk.tanggal_meninggal || '',
+            catatan: penduduk.catatan || '',
+        });
+        setShowModal(true);
+    };
+
+    const handleView = async (penduduk) => {
+        setViewingPenduduk(penduduk);
+        setShowDetailModal(true);
+    };
+
+    const handleDelete = async (id) => {
+        if (!confirm('Are you sure you want to delete this penduduk?')) return;
+
+        try {
+            await pendudukAPI.delete(id);
+            showToast('Penduduk deleted successfully', 'success');
+            fetchPenduduks();
+        } catch (error) {
+            showToast('Failed to delete penduduk', 'error');
+        }
+    };
+
+    const resetForm = () => {
+        setFormData({
+            nik: '',
+            kk: '',
+            nama: '',
+            tempat_lahir: '',
+            tanggal_lahir: '',
+            jenis_kelamin: 'Laki-laki',
+            agama: 'Islam',
+            status_perkawinan: 'Belum Kawin',
+            pekerjaan: '',
+            pendidikan_terakhir: '',
+            kewarganegaraan: 'WNI',
+            alamat: '',
+            rt: '',
+            rw: '',
+            dusun: '',
+            kelurahan: '',
+            kecamatan: '',
+            kabupaten: '',
+            provinsi: '',
+            status_tinggal: 'Tetap',
+            tanggal_pindah: '',
+            tanggal_meninggal: '',
+            catatan: '',
+        });
+        setEditingPenduduk(null);
+    };
+
+    const handleChange = (e) => {
+        const { name, value } = e.target;
+        setFormData(prev => ({ ...prev, [name]: value }));
+    };
+
+    if (loading && penduduks.length === 0) {
+        return <div className="flex justify-center items-center h-64">Loading...</div>;
+    }
+
     return (
         <div className="space-y-6">
             <div className="flex items-center justify-between">
                 <h1 className="text-3xl font-bold text-gray-800">Data Penduduk</h1>
-                <button className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg">
+                <button
+                    onClick={() => {
+                        resetForm();
+                        setShowModal(true);
+                    }}
+                    className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg"
+                >
                     <i className="fas fa-plus mr-2"></i> Tambah Penduduk
                 </button>
             </div>
 
+            {/* Filters */}
+            <div className="bg-white rounded-lg shadow p-4">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">Search</label>
+                        <input
+                            type="text"
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                            placeholder="Search by NIK, KK, nama, or alamat..."
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                        />
+                    </div>
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">Status Tinggal</label>
+                        <select
+                            value={statusFilter}
+                            onChange={(e) => setStatusFilter(e.target.value)}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                        >
+                            <option value="">All Status</option>
+                            <option value="Tetap">Tetap</option>
+                            <option value="Sementara">Sementara</option>
+                            <option value="Pindah">Pindah</option>
+                            <option value="Meninggal">Meninggal</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            {/* Table */}
             <div className="bg-white rounded-lg shadow overflow-hidden">
                 <table className="w-full">
                     <thead className="bg-gray-50">
                         <tr>
                             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">NIK</th>
                             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Nama</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Alamat</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">RT/RW</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Telepon</th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Jenis Kelamin</th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tanggal Lahir</th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
                             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Aksi</th>
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-200">
-                        {RESIDENTS_DATA.map((resident) => (
-                            <tr key={resident.id} className="hover:bg-gray-50">
-                                <td className="px-6 py-4 text-sm">{resident.nik}</td>
-                                <td className="px-6 py-4 font-medium">{resident.name}</td>
-                                <td className="px-6 py-4">{resident.address}</td>
-                                <td className="px-6 py-4">{resident.rt}/{resident.rw}</td>
-                                <td className="px-6 py-4">{resident.phone}</td>
+                        {penduduks.map((penduduk) => (
+                            <tr key={penduduk.id} className="hover:bg-gray-50">
+                                <td className="px-6 py-4 text-sm">{penduduk.nik}</td>
+                                <td className="px-6 py-4 font-medium">{penduduk.nama}</td>
+                                <td className="px-6 py-4">{penduduk.jenis_kelamin}</td>
+                                <td className="px-6 py-4">{penduduk.tanggal_lahir}</td>
                                 <td className="px-6 py-4">
-                                    <button className="text-blue-600 hover:text-blue-800 mr-3">
+                                    <span className={`px-2 py-1 text-xs font-semibold rounded-full ${
+                                        penduduk.status_tinggal === 'Tetap' ? 'bg-green-100 text-green-800' :
+                                        penduduk.status_tinggal === 'Sementara' ? 'bg-yellow-100 text-yellow-800' :
+                                        penduduk.status_tinggal === 'Pindah' ? 'bg-blue-100 text-blue-800' :
+                                        'bg-red-100 text-red-800'
+                                    }`}>
+                                        {penduduk.status_tinggal}
+                                    </span>
+                                </td>
+                                <td className="px-6 py-4">
+                                    <button
+                                        onClick={() => handleView(penduduk)}
+                                        className="text-blue-600 hover:text-blue-800 mr-3"
+                                        title="View Details"
+                                    >
                                         <i className="fas fa-eye"></i>
                                     </button>
-                                    <button className="text-green-600 hover:text-green-800 mr-3">
+                                    <button
+                                        onClick={() => handleEdit(penduduk)}
+                                        className="text-green-600 hover:text-green-800 mr-3"
+                                        title="Edit"
+                                    >
                                         <i className="fas fa-edit"></i>
                                     </button>
-                                    <button className="text-red-600 hover:text-red-800">
+                                    <button
+                                        onClick={() => handleDelete(penduduk.id)}
+                                        className="text-red-600 hover:text-red-800"
+                                        title="Delete"
+                                    >
                                         <i className="fas fa-trash"></i>
                                     </button>
                                 </td>
@@ -1661,7 +1920,530 @@ function ResidentsPage() {
                         ))}
                     </tbody>
                 </table>
+
+                {/* Pagination */}
+                {pagination.last_page > 1 && (
+                    <div className="bg-gray-50 px-6 py-4 flex items-center justify-between border-t">
+                        <div className="text-sm text-gray-700">
+                            Showing page {pagination.current_page} of {pagination.last_page} ({pagination.total} total)
+                        </div>
+                        <div className="flex space-x-2">
+                            <button
+                                onClick={() => setPagination(prev => ({ ...prev, current_page: prev.current_page - 1 }))}
+                                disabled={pagination.current_page === 1}
+                                className="px-3 py-1 border border-gray-300 rounded hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                                Previous
+                            </button>
+                            <button
+                                onClick={() => setPagination(prev => ({ ...prev, current_page: prev.current_page + 1 }))}
+                                disabled={pagination.current_page === pagination.last_page}
+                                className="px-3 py-1 border border-gray-300 rounded hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                                Next
+                            </button>
+                        </div>
+                    </div>
+                )}
             </div>
+
+            {/* Create/Edit Modal */}
+            {showModal && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+                    <div className="bg-white rounded-lg shadow-xl w-full max-w-4xl max-h-[90vh] overflow-y-auto">
+                        <div className="sticky top-0 bg-white border-b px-6 py-4 flex justify-between items-center">
+                            <h2 className="text-2xl font-bold">
+                                {editingPenduduk ? 'Edit Penduduk' : 'Tambah Penduduk'}
+                            </h2>
+                            <button
+                                onClick={() => {
+                                    setShowModal(false);
+                                    resetForm();
+                                }}
+                                className="text-gray-500 hover:text-gray-700"
+                            >
+                                <i className="fas fa-times text-xl"></i>
+                            </button>
+                        </div>
+
+                        <form onSubmit={handleSubmit} className="p-6">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                {/* NIK */}
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                                        NIK <span className="text-red-500">*</span>
+                                    </label>
+                                    <input
+                                        type="text"
+                                        name="nik"
+                                        value={formData.nik}
+                                        onChange={handleChange}
+                                        maxLength="16"
+                                        required
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                                    />
+                                </div>
+
+                                {/* KK */}
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">No. KK</label>
+                                    <input
+                                        type="text"
+                                        name="kk"
+                                        value={formData.kk}
+                                        onChange={handleChange}
+                                        maxLength="16"
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                                    />
+                                </div>
+
+                                {/* Nama */}
+                                <div className="md:col-span-2">
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                                        Nama Lengkap <span className="text-red-500">*</span>
+                                    </label>
+                                    <input
+                                        type="text"
+                                        name="nama"
+                                        value={formData.nama}
+                                        onChange={handleChange}
+                                        required
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                                    />
+                                </div>
+
+                                {/* Tempat Lahir */}
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                                        Tempat Lahir <span className="text-red-500">*</span>
+                                    </label>
+                                    <input
+                                        type="text"
+                                        name="tempat_lahir"
+                                        value={formData.tempat_lahir}
+                                        onChange={handleChange}
+                                        required
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                                    />
+                                </div>
+
+                                {/* Tanggal Lahir */}
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                                        Tanggal Lahir <span className="text-red-500">*</span>
+                                    </label>
+                                    <input
+                                        type="date"
+                                        name="tanggal_lahir"
+                                        value={formData.tanggal_lahir}
+                                        onChange={handleChange}
+                                        required
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                                    />
+                                </div>
+
+                                {/* Jenis Kelamin */}
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                                        Jenis Kelamin <span className="text-red-500">*</span>
+                                    </label>
+                                    <select
+                                        name="jenis_kelamin"
+                                        value={formData.jenis_kelamin}
+                                        onChange={handleChange}
+                                        required
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                                    >
+                                        <option value="Laki-laki">Laki-laki</option>
+                                        <option value="Perempuan">Perempuan</option>
+                                    </select>
+                                </div>
+
+                                {/* Agama */}
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                                        Agama <span className="text-red-500">*</span>
+                                    </label>
+                                    <select
+                                        name="agama"
+                                        value={formData.agama}
+                                        onChange={handleChange}
+                                        required
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                                    >
+                                        <option value="Islam">Islam</option>
+                                        <option value="Kristen">Kristen</option>
+                                        <option value="Katolik">Katolik</option>
+                                        <option value="Hindu">Hindu</option>
+                                        <option value="Buddha">Buddha</option>
+                                        <option value="Konghucu">Konghucu</option>
+                                        <option value="Lainnya">Lainnya</option>
+                                    </select>
+                                </div>
+
+                                {/* Status Perkawinan */}
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                                        Status Perkawinan <span className="text-red-500">*</span>
+                                    </label>
+                                    <select
+                                        name="status_perkawinan"
+                                        value={formData.status_perkawinan}
+                                        onChange={handleChange}
+                                        required
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                                    >
+                                        <option value="Belum Kawin">Belum Kawin</option>
+                                        <option value="Kawin">Kawin</option>
+                                        <option value="Cerai Hidup">Cerai Hidup</option>
+                                        <option value="Cerai Mati">Cerai Mati</option>
+                                    </select>
+                                </div>
+
+                                {/* Pekerjaan */}
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">Pekerjaan</label>
+                                    <input
+                                        type="text"
+                                        name="pekerjaan"
+                                        value={formData.pekerjaan}
+                                        onChange={handleChange}
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                                    />
+                                </div>
+
+                                {/* Pendidikan Terakhir */}
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">Pendidikan Terakhir</label>
+                                    <input
+                                        type="text"
+                                        name="pendidikan_terakhir"
+                                        value={formData.pendidikan_terakhir}
+                                        onChange={handleChange}
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                                    />
+                                </div>
+
+                                {/* Kewarganegaraan */}
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">Kewarganegaraan</label>
+                                    <input
+                                        type="text"
+                                        name="kewarganegaraan"
+                                        value={formData.kewarganegaraan}
+                                        onChange={handleChange}
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                                    />
+                                </div>
+
+                                {/* Alamat */}
+                                <div className="md:col-span-2">
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                                        Alamat <span className="text-red-500">*</span>
+                                    </label>
+                                    <textarea
+                                        name="alamat"
+                                        value={formData.alamat}
+                                        onChange={handleChange}
+                                        required
+                                        rows="3"
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                                    />
+                                </div>
+
+                                {/* RT */}
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">RT</label>
+                                    <input
+                                        type="text"
+                                        name="rt"
+                                        value={formData.rt}
+                                        onChange={handleChange}
+                                        maxLength="5"
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                                    />
+                                </div>
+
+                                {/* RW */}
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">RW</label>
+                                    <input
+                                        type="text"
+                                        name="rw"
+                                        value={formData.rw}
+                                        onChange={handleChange}
+                                        maxLength="5"
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                                    />
+                                </div>
+
+                                {/* Dusun */}
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">Dusun</label>
+                                    <input
+                                        type="text"
+                                        name="dusun"
+                                        value={formData.dusun}
+                                        onChange={handleChange}
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                                    />
+                                </div>
+
+                                {/* Kelurahan */}
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">Kelurahan</label>
+                                    <input
+                                        type="text"
+                                        name="kelurahan"
+                                        value={formData.kelurahan}
+                                        onChange={handleChange}
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                                    />
+                                </div>
+
+                                {/* Kecamatan */}
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">Kecamatan</label>
+                                    <input
+                                        type="text"
+                                        name="kecamatan"
+                                        value={formData.kecamatan}
+                                        onChange={handleChange}
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                                    />
+                                </div>
+
+                                {/* Kabupaten */}
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">Kabupaten</label>
+                                    <input
+                                        type="text"
+                                        name="kabupaten"
+                                        value={formData.kabupaten}
+                                        onChange={handleChange}
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                                    />
+                                </div>
+
+                                {/* Provinsi */}
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">Provinsi</label>
+                                    <input
+                                        type="text"
+                                        name="provinsi"
+                                        value={formData.provinsi}
+                                        onChange={handleChange}
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                                    />
+                                </div>
+
+                                {/* Status Tinggal */}
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">Status Tinggal</label>
+                                    <select
+                                        name="status_tinggal"
+                                        value={formData.status_tinggal}
+                                        onChange={handleChange}
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                                    >
+                                        <option value="Tetap">Tetap</option>
+                                        <option value="Sementara">Sementara</option>
+                                        <option value="Pindah">Pindah</option>
+                                        <option value="Meninggal">Meninggal</option>
+                                    </select>
+                                </div>
+
+                                {/* Tanggal Pindah */}
+                                {formData.status_tinggal === 'Pindah' && (
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-2">Tanggal Pindah</label>
+                                        <input
+                                            type="date"
+                                            name="tanggal_pindah"
+                                            value={formData.tanggal_pindah}
+                                            onChange={handleChange}
+                                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                                        />
+                                    </div>
+                                )}
+
+                                {/* Tanggal Meninggal */}
+                                {formData.status_tinggal === 'Meninggal' && (
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-2">Tanggal Meninggal</label>
+                                        <input
+                                            type="date"
+                                            name="tanggal_meninggal"
+                                            value={formData.tanggal_meninggal}
+                                            onChange={handleChange}
+                                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                                        />
+                                    </div>
+                                )}
+
+                                {/* Catatan */}
+                                <div className="md:col-span-2">
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">Catatan</label>
+                                    <textarea
+                                        name="catatan"
+                                        value={formData.catatan}
+                                        onChange={handleChange}
+                                        rows="3"
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="flex justify-end space-x-3 mt-6">
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        setShowModal(false);
+                                        resetForm();
+                                    }}
+                                    className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    type="submit"
+                                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                                >
+                                    {editingPenduduk ? 'Update' : 'Create'}
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
+
+            {/* Detail Modal */}
+            {showDetailModal && viewingPenduduk && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+                    <div className="bg-white rounded-lg shadow-xl w-full max-w-3xl max-h-[90vh] overflow-y-auto">
+                        <div className="sticky top-0 bg-white border-b px-6 py-4 flex justify-between items-center">
+                            <h2 className="text-2xl font-bold">Detail Penduduk</h2>
+                            <button
+                                onClick={() => {
+                                    setShowDetailModal(false);
+                                    setViewingPenduduk(null);
+                                }}
+                                className="text-gray-500 hover:text-gray-700"
+                            >
+                                <i className="fas fa-times text-xl"></i>
+                            </button>
+                        </div>
+
+                        <div className="p-6">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-500">NIK</label>
+                                    <p className="text-base font-medium">{viewingPenduduk.nik}</p>
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-500">No. KK</label>
+                                    <p className="text-base font-medium">{viewingPenduduk.kk || '-'}</p>
+                                </div>
+                                <div className="md:col-span-2">
+                                    <label className="block text-sm font-medium text-gray-500">Nama Lengkap</label>
+                                    <p className="text-base font-medium">{viewingPenduduk.nama}</p>
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-500">Tempat Lahir</label>
+                                    <p className="text-base font-medium">{viewingPenduduk.tempat_lahir}</p>
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-500">Tanggal Lahir</label>
+                                    <p className="text-base font-medium">{viewingPenduduk.tanggal_lahir}</p>
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-500">Jenis Kelamin</label>
+                                    <p className="text-base font-medium">{viewingPenduduk.jenis_kelamin}</p>
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-500">Agama</label>
+                                    <p className="text-base font-medium">{viewingPenduduk.agama}</p>
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-500">Status Perkawinan</label>
+                                    <p className="text-base font-medium">{viewingPenduduk.status_perkawinan}</p>
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-500">Pekerjaan</label>
+                                    <p className="text-base font-medium">{viewingPenduduk.pekerjaan || '-'}</p>
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-500">Pendidikan Terakhir</label>
+                                    <p className="text-base font-medium">{viewingPenduduk.pendidikan_terakhir || '-'}</p>
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-500">Kewarganegaraan</label>
+                                    <p className="text-base font-medium">{viewingPenduduk.kewarganegaraan}</p>
+                                </div>
+                                <div className="md:col-span-2">
+                                    <label className="block text-sm font-medium text-gray-500">Alamat</label>
+                                    <p className="text-base font-medium">{viewingPenduduk.alamat}</p>
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-500">RT/RW</label>
+                                    <p className="text-base font-medium">{viewingPenduduk.rt || '-'} / {viewingPenduduk.rw || '-'}</p>
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-500">Dusun</label>
+                                    <p className="text-base font-medium">{viewingPenduduk.dusun || '-'}</p>
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-500">Kelurahan</label>
+                                    <p className="text-base font-medium">{viewingPenduduk.kelurahan || '-'}</p>
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-500">Kecamatan</label>
+                                    <p className="text-base font-medium">{viewingPenduduk.kecamatan || '-'}</p>
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-500">Kabupaten</label>
+                                    <p className="text-base font-medium">{viewingPenduduk.kabupaten || '-'}</p>
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-500">Provinsi</label>
+                                    <p className="text-base font-medium">{viewingPenduduk.provinsi || '-'}</p>
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-500">Status Tinggal</label>
+                                    <p className="text-base font-medium">
+                                        <span className={`px-2 py-1 text-xs font-semibold rounded-full ${
+                                            viewingPenduduk.status_tinggal === 'Tetap' ? 'bg-green-100 text-green-800' :
+                                            viewingPenduduk.status_tinggal === 'Sementara' ? 'bg-yellow-100 text-yellow-800' :
+                                            viewingPenduduk.status_tinggal === 'Pindah' ? 'bg-blue-100 text-blue-800' :
+                                            'bg-red-100 text-red-800'
+                                        }`}>
+                                            {viewingPenduduk.status_tinggal}
+                                        </span>
+                                    </p>
+                                </div>
+                                {viewingPenduduk.tanggal_pindah && (
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-500">Tanggal Pindah</label>
+                                        <p className="text-base font-medium">{viewingPenduduk.tanggal_pindah}</p>
+                                    </div>
+                                )}
+                                {viewingPenduduk.tanggal_meninggal && (
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-500">Tanggal Meninggal</label>
+                                        <p className="text-base font-medium">{viewingPenduduk.tanggal_meninggal}</p>
+                                    </div>
+                                )}
+                                {viewingPenduduk.catatan && (
+                                    <div className="md:col-span-2">
+                                        <label className="block text-sm font-medium text-gray-500">Catatan</label>
+                                        <p className="text-base font-medium">{viewingPenduduk.catatan}</p>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }
