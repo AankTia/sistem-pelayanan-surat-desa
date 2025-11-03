@@ -2,6 +2,9 @@ import React, { useState, createContext, useContext } from 'react';
 import { createRoot } from 'react-dom/client';
 import { BrowserRouter, Routes, Route, Navigate, Link, useNavigate, useLocation } from 'react-router-dom';
 import { BarChart, Bar, LineChart, Line, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import { CKEditor } from '@ckeditor/ckeditor5-react';
+import { ClassicEditor, Bold, Essentials, Italic, Mention, Paragraph, Undo, Heading, List, Underline, Strikethrough, Alignment, Link as CKLink, Image, ImageUpload, BlockQuote, FontColor, FontBackgroundColor, Table, TableToolbar, TableProperties, TableCellProperties, Indent, IndentBlock } from 'ckeditor5';
+import 'ckeditor5/ckeditor5.css';
 import axios from 'axios';
 
 // ==================== API SETUP ====================
@@ -2264,6 +2267,117 @@ function LetterCategoryPage() {
     );
 }
 
+// CKEditor Component
+function CKEditorComponent({ value, onChange }) {
+    const [isPreview, setIsPreview] = React.useState(false);
+
+    return (
+        <div className="border border-gray-300 rounded-lg">
+            <div className="flex items-center gap-2 p-2 border-b border-gray-300 bg-gray-50">
+                <div className="flex items-center gap-2 ml-auto">
+                    <button
+                        type="button"
+                        onClick={() => setIsPreview(false)}
+                        className={`px-3 py-1 text-sm rounded ${!isPreview ? 'bg-blue-600 text-white' : 'bg-white text-gray-700 hover:bg-gray-100'}`}
+                    >
+                        <i className="fas fa-edit mr-1"></i> Edit
+                    </button>
+                    <button
+                        type="button"
+                        onClick={() => setIsPreview(true)}
+                        className={`px-3 py-1 text-sm rounded ${isPreview ? 'bg-blue-600 text-white' : 'bg-white text-gray-700 hover:bg-gray-100'}`}
+                    >
+                        <i className="fas fa-eye mr-1"></i> Preview
+                    </button>
+                </div>
+            </div>
+
+            {!isPreview && (
+                <div className="p-4 ckeditor-wrapper">
+                    <CKEditor
+                        editor={ClassicEditor}
+                        data={value || ''}
+                        onChange={(event, editor) => {
+                            const data = editor.getData();
+                            onChange(data);
+                        }}
+                        config={{
+                            licenseKey: 'GPL',
+                            plugins: [
+                                Essentials,
+                                Bold,
+                                Italic,
+                                Underline,
+                                Strikethrough,
+                                Paragraph,
+                                Heading,
+                                List,
+                                Alignment,
+                                CKLink,
+                                BlockQuote,
+                                FontColor,
+                                FontBackgroundColor,
+                                Undo,
+                                Table,
+                                TableToolbar,
+                                TableProperties,
+                                TableCellProperties,
+                                Indent,
+                                IndentBlock,
+                            ],
+                            toolbar: [
+                                'undo', 'redo',
+                                '|',
+                                'heading',
+                                '|',
+                                'bold', 'italic', 'underline', 'strikethrough',
+                                '|',
+                                'fontColor', 'fontBackgroundColor',
+                                '|',
+                                'bulletedList', 'numberedList',
+                                '|',
+                                'outdent', 'indent',
+                                '|',
+                                'alignment',
+                                '|',
+                                'link', 'blockQuote',
+                                '|',
+                                'insertTable',
+                            ],
+                            heading: {
+                                options: [
+                                    { model: 'paragraph', title: 'Paragraph', class: 'ck-heading_paragraph' },
+                                    { model: 'heading1', view: 'h1', title: 'Heading 1', class: 'ck-heading_heading1' },
+                                    { model: 'heading2', view: 'h2', title: 'Heading 2', class: 'ck-heading_heading2' },
+                                    { model: 'heading3', view: 'h3', title: 'Heading 3', class: 'ck-heading_heading3' },
+                                ]
+                            },
+                            table: {
+                                contentToolbar: [
+                                    'tableColumn', 'tableRow', 'mergeTableCells',
+                                    'tableProperties', 'tableCellProperties'
+                                ]
+                            },
+                            placeholder: 'Enter the HTML template with placeholders like {{field_name}}',
+                        }}
+                    />
+                    <style>{`
+                        .ckeditor-wrapper .ck-editor__editable {
+                            min-height: 300px;
+                        }
+                    `}</style>
+                </div>
+            )}
+
+            {isPreview && (
+                <div className="p-4 min-h-[300px] bg-white">
+                    <div className="prose max-w-none" dangerouslySetInnerHTML={{ __html: value || '<p class="text-gray-400">No content to preview</p>' }} />
+                </div>
+            )}
+        </div>
+    );
+}
+
 function LetterTemplatePage() {
     const { showToast } = useToast();
     const [templates, setTemplates] = useState([]);
@@ -2372,11 +2486,27 @@ function LetterTemplatePage() {
 
     const handleEditClick = (template) => {
         setSelectedTemplate(template);
+
+        // Parse fields if it's a JSON string
+        let parsedFields = [];
+        if (template.fields) {
+            if (typeof template.fields === 'string') {
+                try {
+                    parsedFields = JSON.parse(template.fields);
+                } catch (e) {
+                    console.error('Failed to parse fields:', e);
+                    parsedFields = [];
+                }
+            } else if (Array.isArray(template.fields)) {
+                parsedFields = template.fields;
+            }
+        }
+
         setFormData({
             letter_category_id: template.letter_category?.id || '',
             name: template.name,
             code: template.code,
-            fields: template.fields || [],
+            fields: parsedFields,
             template_html: template.template_html || '',
             signature_type: template.signature_type,
             status: template.status
@@ -2400,6 +2530,19 @@ function LetterTemplatePage() {
             setFormErrors(prev => ({
                 ...prev,
                 [name]: null
+            }));
+        }
+    };
+
+    const handleEditorChange = (content) => {
+        setFormData(prev => ({
+            ...prev,
+            template_html: content
+        }));
+        if (formErrors.template_html) {
+            setFormErrors(prev => ({
+                ...prev,
+                template_html: null
             }));
         }
     };
@@ -2928,14 +3071,9 @@ function LetterTemplatePage() {
                                 <label className="block text-sm font-medium text-gray-700 mb-2">
                                     Template HTML <span className="text-red-500">*</span>
                                 </label>
-                                <textarea
-                                    name="template_html"
+                                <CKEditorComponent
                                     value={formData.template_html}
-                                    onChange={handleFormChange}
-                                    rows="6"
-                                    placeholder="Enter the HTML template with placeholders like {{field_name}}"
-                                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono text-sm"
-                                    required
+                                    onChange={handleEditorChange}
                                 />
                                 {formErrors.template_html && (
                                     <p className="text-red-500 text-sm mt-1">{formErrors.template_html[0]}</p>
